@@ -1,17 +1,36 @@
 import timeit
 import xml.sax
+
+def titleWrite(title_data, file_count):
+    fp1=open("temp/title"+str(file_count),"w")
+    fp1.write(title_data)
+    fp1.write("\n")
+
 class WikiHandler(xml.sax.ContentHandler):
     def __init__(self):
         self.title=0
+        self.title_data = ""
+        self.page_count = 0
+        self.file_count = 0
+    
     def startElement(self,tag,attr):
-        self.current = tag
-        
+        if(tag == "page"):
+            self.page_count = self.page_count + 1
+        if(tag == "title"):
+            self.title = 1
+
     def characters(self, content):
-        if(self.current == "title"):
-            fp.write(content)
-            fp.write("\n")
+        if(self.title == 1):
+            self.title_data += content
+        if self.page_count > 20000:
+            titleWrite(self.title_data, self.file_count)
+            self.page_count = 0
+            self.file_count = self.file_count + 1
+            title_data = ""
+
     def endElement(self, tag):
-        self.current = ""
+        if(tag == "title"):
+            self.title = 0
 
 def main():
     global fp
