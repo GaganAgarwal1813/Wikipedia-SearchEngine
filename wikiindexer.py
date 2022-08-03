@@ -8,12 +8,43 @@ from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk import pos_tag
+from collections import defaultdict
+from Stemmer import Stemmer
+import re 
+
+title_dict = defaultdict(str)
+stopwords= defaultdict(int)
+
+with open ('stop_words.txt','r') as f:
+    pi=0
+    for i in f:
+        i=i.strip(' ').strip("\n")
+        stopwords[i]=1
+    pi+=1
 
 
-def titleWrite(title_data, file_count):
-    fp1=open("temp/title"+str(file_count),"w")
-    fp1.write(title_data)
-    fp1.write("\n")
+
+def removeStopWords(dataList):
+    temp=[key for key in dataList if stopwords[key]!=1]
+    return temp
+
+def stem(datalist):                                          #Stemming
+    stemmer=Stemmer("english")
+    tmp=[]
+    for x in datalist:
+        y=stemmer.stemWord(x)
+        tmp.append(y)
+    return tmp
+
+def makeDict(datalist):
+    datalist = removeStopWords(datalist)
+    p=[]
+    temp=defaultdict(int)
+    datalist= stem(datalist)
+
+    for x in datalist:
+        temp[x]=temp[x]+1
+    return temp
 
 def preProcess(text):
     # Converting to lower case
@@ -23,40 +54,92 @@ def preProcess(text):
     # Tokenizing the text
     tokens = word_tokenize(text_p)
     # Removing stop words
-    stop_words = set(stopwords.words('english'))
-    tokens = [word for word in tokens if not word in stop_words]
+    # stop_words = set(stopwords.words('english'))
+    # tokens = [word for word in tokens if not word in stop_words]
+    tokens = removeStopWords(tokens)
     # Stemming the tokens
     ps = PorterStemmer()
     tokens = [ps.stem(word) for word in tokens]
     return tokens
+
+def processTitle(data):
+    data=data.lower()
+    data_tok=re.findall(r'\d+|[\w]+',data)
+    temp=makeDict(data_tok)
+    return temp  
+
+def titleWrite(file_count):
+    global title_dict
+    # processed_data = "\n".join(preProcess(title_data))
+    with open("temp/title"+str(file_count),"w") as f:
+        li=sorted(title_dict.keys())
+        fp.write(str(li[0]))
+        for doc_id in (li):
+            f.write(str(doc_id))
+            f.write("-"+str(title_dict[doc_id])+"\n")
+
 
 class WikiHandler(xml.sax.ContentHandler):
     def __init__(self):
         self.title=0
         self.title_data = ""
         self.page_count = 0
+        self.title_count = 0
+        self.title_file_count = 0
         self.file_count = 0
+        self.title_id = 0
+        self.page_stat = 0
+        self.bufid = ""
+    
+    def Index_Create_Fun(self,title_data):
+        global title_dict
+        if self.title_count > 200000:
+            # processed_data = "\n".join(preProcess(self.title_data))
+            # processed_data = preProcess(self.title_data)
+            print(self.title_count)
+            titleWrite(self.title_file_count)
+            self.title_count = 0
+            self.title_file_count = self.title_file_count + 1
+            title_dict=defaultdict(str)
+
     
     def startElement(self,tag,attr):
-        if(tag == "page"):
-            self.page_count = self.page_count + 1
+        if(tag=="id" and self.page_stat==0):
+            self.page_stat=1
+            self.title_id=1
+            self.bufid=""
         if(tag == "title"):
             self.title = 1
+            self.title_data = ""
+        if(tag == "page"):
+            self.page_count = self.page_count + 1
+            self.title_count = self.title_count + 1
+        
 
     def characters(self, content):
+        if (self.title_id==1 and self.page_stat==1):
+            self.bufid += content
+            # print(self.bufid)
+            title_dict[int(self.bufid)]=self.title_data
         if(self.title == 1):
             self.title_data += content
-        if self.page_count > 20000:
-            processed_data = "\n".join(preProcess(self.title_data))
-            # processed_data = preProcess(self.title_data)
-            titleWrite(processed_data, self.file_count)
-            self.page_count = 0
-            self.file_count = self.file_count + 1
-            title_data = ""
+        
 
     def endElement(self, tag):
+        if(tag=="page"):
+            self.page_stat=0
+            # self.count+=1
+            self.title_count+=1
+        if(tag=="id"):
+            self.title_id=0
         if(tag == "title"):
             self.title = 0
+            self.title_data_dict = processTitle(self.title_data)
+        if(tag=="text"):
+            WikiHandler.Index_Create_Fun(self,self.title_data )
+        
+            
+
 
 def main():
     global fp
