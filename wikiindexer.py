@@ -12,29 +12,15 @@ from collections import defaultdict
 from Stemmer import Stemmer
 import re 
 
-title_dict = defaultdict(str)
 stopwords= defaultdict(int)
+title_dict = defaultdict(str)
 
-with open ('stop_words.txt','r') as f:
-    pi=0
-    for i in f:
-        i=i.strip(' ').strip("\n")
-        stopwords[i]=1
-    pi+=1
-
-
-
-def removeStopWords(dataList):
-    temp=[key for key in dataList if stopwords[key]!=1]
-    return temp
-
-def stem(datalist):                                          #Stemming
-    stemmer=Stemmer("english")
-    tmp=[]
-    for x in datalist:
-        y=stemmer.stemWord(x)
-        tmp.append(y)
-    return tmp
+def build_stopWordsDict():                               # Building Stop Words Dictionary
+    global stopwords
+    with open ('StopWords.txt','r') as f:
+        for i in f:
+            i=i.strip(' ').strip("\n")
+            stopwords[i]=1
 
 def makeDict(datalist):
     datalist = removeStopWords(datalist)
@@ -54,8 +40,6 @@ def preProcess(text):
     # Tokenizing the text
     tokens = word_tokenize(text_p)
     # Removing stop words
-    # stop_words = set(stopwords.words('english'))
-    # tokens = [word for word in tokens if not word in stop_words]
     tokens = removeStopWords(tokens)
     # Stemming the tokens
     ps = PorterStemmer()
@@ -68,9 +52,19 @@ def processTitle(data):
     temp=makeDict(data_tok)
     return temp  
 
+def removeStopWords(dataLis):                           # Removing Stop Words
+    temp=[key for key in dataLis if stopwords[key]!=1]
+    return temp
+
+def stem(datalist):                                        #Stemming the data
+    finalLis=[]
+    stemmer=Stemmer("english")
+    for i in datalist:
+        finalLis.append(stemmer.stemWord(i))
+    return finalLis
+
 def titleWrite(file_count):
     global title_dict
-    # processed_data = "\n".join(preProcess(title_data))
     with open("temp/title"+str(file_count),"w") as f:
         li=sorted(title_dict.keys())
         fp.write(str(li[0]))
@@ -83,19 +77,16 @@ class WikiHandler(xml.sax.ContentHandler):
     def __init__(self):
         self.title=0
         self.title_data = ""
-        self.page_count = 0
-        self.title_count = 0
+        self.page_count = 0 # For Counting the pages Parsed till now
+        self.title_count = 0 # Counting title for 1 title file
         self.title_file_count = 0
-        self.file_count = 0
-        self.title_id = 0
+        self.title_id_stat = 0
         self.page_stat = 0
-        self.bufid = ""
+        self.bufid = "" # For Unique ID of Title 
     
     def Index_Create_Fun(self,title_data):
         global title_dict
         if self.title_count > 200000:
-            # processed_data = "\n".join(preProcess(self.title_data))
-            # processed_data = preProcess(self.title_data)
             print(self.title_count)
             titleWrite(self.title_file_count)
             self.title_count = 0
@@ -106,7 +97,7 @@ class WikiHandler(xml.sax.ContentHandler):
     def startElement(self,tag,attr):
         if(tag=="id" and self.page_stat==0):
             self.page_stat=1
-            self.title_id=1
+            self.title_id_stat=1
             self.bufid=""
         if(tag == "title"):
             self.title = 1
@@ -117,9 +108,8 @@ class WikiHandler(xml.sax.ContentHandler):
         
 
     def characters(self, content):
-        if (self.title_id==1 and self.page_stat==1):
+        if (self.title_id_stat==1 and self.page_stat==1):
             self.bufid += content
-            # print(self.bufid)
             title_dict[int(self.bufid)]=self.title_data
         if(self.title == 1):
             self.title_data += content
@@ -128,10 +118,9 @@ class WikiHandler(xml.sax.ContentHandler):
     def endElement(self, tag):
         if(tag=="page"):
             self.page_stat=0
-            # self.count+=1
             self.title_count+=1
         if(tag=="id"):
-            self.title_id=0
+            self.title_id_stat=0
         if(tag == "title"):
             self.title = 0
             self.title_data_dict = processTitle(self.title_data)
@@ -152,8 +141,9 @@ def main():
 
 
 
-if __name__ == "__main__":                                            #main
+if __name__ == "__main__":                                          
     start = timeit.default_timer()
+    build_stopWordsDict()
     main()
     stop = timeit.default_timer()
     print (stop - start)
