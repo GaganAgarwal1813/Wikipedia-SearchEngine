@@ -65,12 +65,12 @@ def stem(datalist):                                        #Stemming the data
 
 def titleWrite(file_count):
     global title_dict
-    with open("temp/title"+str(file_count),"w") as f:
+    with open("temp/title"+str(file_count)+".tsv","w") as f:
         li=sorted(title_dict.keys())
         fp.write(str(li[0]))
         for doc_id in (li):
             f.write(str(doc_id))
-            f.write("-"+str(title_dict[doc_id])+"\n")
+            f.write("\t"+str(title_dict[doc_id])+"\n")
 
 
 class WikiHandler(xml.sax.ContentHandler):
@@ -132,7 +132,7 @@ class WikiHandler(xml.sax.ContentHandler):
 
 def main():
     global fp
-    fp=open("temp/title_offset","w")
+    fp=open("temp/title_offset.tsv","w")
     par=xml.sax.make_parser()
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
