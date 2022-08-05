@@ -5,12 +5,15 @@ nltk.download('punkt')
 nltk.download('stopwords')
 from collections import defaultdict
 from Stemmer import Stemmer
+import pickle
 import re 
 
 stop_words_dict= defaultdict(int)
 title_dict = defaultdict(str)
 pattern = re.compile("[^a-zA-Z0-9]")
+title_pos = list() # Which title is present at which location in the file
 title_index = defaultdict(list)
+
 
 def build_stopWordsDict():                               # Building Stop Words Dictionary
     global stop_words_dict
@@ -27,13 +30,21 @@ def stem(datalist):                                        #Stemming the data
     return finalLis
 
 def titleWrite(file_count):
-    global title_dict
+    global title_dict, title_pos
     with open("temp/title"+str(file_count)+".txt","w") as f:
         # li=sorted(title_dict.keys())
         # fp.write(str(li[0]))
         for value in (title_dict.values()):
+            title_pos.append(f.tell())
             f.write(str(value)+"\n")
+            
             # f.write("\t"+str(title_dict[doc_id])+"\n")
+
+def title_pos_pickle_write():
+    global title_pos
+    file = open("temp/title_pos.pickle", "wb+")
+    pickle.dump(title_pos, file)
+    file.close()
 
 def title_word_loc_write(file_count):
     global title_index
@@ -48,8 +59,18 @@ def title_word_loc_write(file_count):
             word_position[word]['t']=fptr
         else:
             word_position[word] = {}
+            word_position[word]['t']=fptr
         fptr = fptr + len(index)
     outfile.close()
+
+    print(word_position)
+
+    # Writing Title Words with position to pickel file
+    file = open("temp/wpos"+str(file_count)+".pickle", "wb+")
+    pickle.dump(word_position, file)
+    file.close()
+    
+
 
 def store_title_index(title_tag_words, page_count):
     global title_index
@@ -144,13 +165,14 @@ def main():
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
-    par.parse('data.xml')
+    par.parse('tiny.xml')
     # Parsing Done
     # Writing Titles to File
     titleWrite(WikiHandler.title_file_count)
     # Writing Title Index to File
     title_word_loc_write(WikiHandler.title_file_count)
-
+    # Writing Title Position to Pickle File
+    title_pos_pickle_write()
 
 if __name__ == "__main__":                                          
     start = timeit.default_timer()
