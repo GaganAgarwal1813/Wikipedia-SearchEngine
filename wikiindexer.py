@@ -1,13 +1,8 @@
 import timeit
 import xml.sax
-import string
 import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
-from nltk import word_tokenize
-# from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer
-from nltk import pos_tag
 from collections import defaultdict
 from Stemmer import Stemmer
 import re 
@@ -100,35 +95,24 @@ class WikiHandler(xml.sax.ContentHandler):
             # Adding title content to the dictionary
             title_text = content
             title_text = title_text.lower()
-            # print("gfgf "+title_text)
             global pattern
             title_text = re.split(pattern, title_text)
-            print("ggg ",title_text)
             for word in title_text:
                 if word:
-                    # print("gfgf "+word)
                     if word not in stop_words_dict:
-                        print("gfgf "+word)
                         if word not in self.title_tag_words:
                             self.title_tag_words[word] = 1
                         else:
                             self.title_tag_words[word] += 1
-            print(self.title_tag_words)
 
     def endElement(self, tag):
         if(tag=="page"):
             self.page_stat=0
-            self.title_count+=1
-
-            
-            # print(self.title_tag_words)
-            
+            self.title_count+=1            
         if(tag=="id"):
             self.title_id_stat=0
         if(tag == "title"):
             self.title = 0
-            # self.title_data_dict = processTitle(self.title_data)
-            # print(self.title_tag_words)
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
             WikiHandler.Index_Create_Fun(self)
