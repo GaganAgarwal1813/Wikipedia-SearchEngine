@@ -28,12 +28,12 @@ def stem(datalist):                                        #Stemming the data
 
 def titleWrite(file_count):
     global title_dict
-    with open("temp/title"+str(file_count)+".tsv","w") as f:
-        li=sorted(title_dict.keys())
-        fp.write(str(li[0]))
-        for doc_id in (li):
-            f.write(str(doc_id))
-            f.write("\t"+str(title_dict[doc_id])+"\n")
+    with open("temp/title"+str(file_count)+".txt","w") as f:
+        # li=sorted(title_dict.keys())
+        # fp.write(str(li[0]))
+        for value in (title_dict.values()):
+            f.write(str(value)+"\n")
+            # f.write("\t"+str(title_dict[doc_id])+"\n")
 
 def title_word_loc_write(file_count):
     global title_index
@@ -148,8 +148,6 @@ def main():
     # Parsing Done
     # Writing Titles to File
     titleWrite(WikiHandler.title_file_count)
-
-    # print(title_index)
     # Writing Title Index to File
     title_word_loc_write(WikiHandler.title_file_count)
 
