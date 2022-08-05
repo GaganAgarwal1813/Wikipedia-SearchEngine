@@ -5,56 +5,24 @@ import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 from nltk import word_tokenize
-from nltk.corpus import stopwords
+# from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk import pos_tag
 from collections import defaultdict
 from Stemmer import Stemmer
 import re 
 
-stopwords= defaultdict(int)
+stop_words_dict= defaultdict(int)
 title_dict = defaultdict(str)
+pattern = re.compile("[^a-zA-Z0-9]")
+title_index = defaultdict(list)
 
 def build_stopWordsDict():                               # Building Stop Words Dictionary
-    global stopwords
+    global stop_words_dict
     with open ('StopWords.txt','r') as f:
         for i in f:
             i=i.strip(' ').strip("\n")
-            stopwords[i]=1
-
-def makeDict(datalist):
-    datalist = removeStopWords(datalist)
-    p=[]
-    temp=defaultdict(int)
-    datalist= stem(datalist)
-
-    for x in datalist:
-        temp[x]=temp[x]+1
-    return temp
-
-def preProcess(text):
-    # Converting to lower case
-    text = text.lower()
-    # Removing all the special characters
-    text_p = "".join([char for char in text if char not in string.punctuation])
-    # Tokenizing the text
-    tokens = word_tokenize(text_p)
-    # Removing stop words
-    tokens = removeStopWords(tokens)
-    # Stemming the tokens
-    ps = PorterStemmer()
-    tokens = [ps.stem(word) for word in tokens]
-    return tokens
-
-def processTitle(data):
-    data=data.lower()
-    data_tok=re.findall(r'\d+|[\w]+',data)
-    temp=makeDict(data_tok)
-    return temp  
-
-def removeStopWords(dataLis):                           # Removing Stop Words
-    temp=[key for key in dataLis if stopwords[key]!=1]
-    return temp
+            stop_words_dict[i]=1
 
 def stem(datalist):                                        #Stemming the data
     finalLis=[]
@@ -73,7 +41,16 @@ def titleWrite(file_count):
             f.write("\t"+str(title_dict[doc_id])+"\n")
 
 
+def store_title_index(title_tag_words, page_count):
+    global title_index
+    index = str(page_count)
+    for word in title_tag_words :
+        s = index + ":" + str(title_tag_words[word])
+        title_index[word].append(s)
+
+
 class WikiHandler(xml.sax.ContentHandler):
+    title_file_count = 0
     def __init__(self):
         self.title=0
         self.title_data = ""
@@ -83,8 +60,11 @@ class WikiHandler(xml.sax.ContentHandler):
         self.title_id_stat = 0
         self.page_stat = 0
         self.bufid = "" # For Unique ID of Title 
+        self.title_tag_words = dict() # For Storing the Title Tag Words
+
     
-    def Index_Create_Fun(self,title_data):
+    
+    def Index_Create_Fun(self):
         global title_dict
         if self.title_count > 200000:
             print(self.title_count)
@@ -92,7 +72,8 @@ class WikiHandler(xml.sax.ContentHandler):
             self.title_count = 0
             self.title_file_count = self.title_file_count + 1
             title_dict=defaultdict(str)
-
+        
+            
     
     def startElement(self,tag,attr):
         if(tag=="id" and self.page_stat==0):
@@ -105,6 +86,7 @@ class WikiHandler(xml.sax.ContentHandler):
         if(tag == "page"):
             self.page_count = self.page_count + 1
             self.title_count = self.title_count + 1
+            self.title_tag_words = dict() # Making the Title tag dictionary as empty for every page
         
 
     def characters(self, content):
@@ -113,32 +95,59 @@ class WikiHandler(xml.sax.ContentHandler):
             title_dict[int(self.bufid)]=self.title_data
         if(self.title == 1):
             self.title_data += content
-        
+
+
+            # Adding title content to the dictionary
+            title_text = content
+            title_text = title_text.lower()
+            # print("gfgf "+title_text)
+            global pattern
+            title_text = re.split(pattern, title_text)
+            print("ggg ",title_text)
+            for word in title_text:
+                if word:
+                    # print("gfgf "+word)
+                    if word not in stop_words_dict:
+                        print("gfgf "+word)
+                        if word not in self.title_tag_words:
+                            self.title_tag_words[word] = 1
+                        else:
+                            self.title_tag_words[word] += 1
+            print(self.title_tag_words)
 
     def endElement(self, tag):
         if(tag=="page"):
             self.page_stat=0
             self.title_count+=1
+
+            
+            # print(self.title_tag_words)
+            
         if(tag=="id"):
             self.title_id_stat=0
         if(tag == "title"):
             self.title = 0
-            self.title_data_dict = processTitle(self.title_data)
+            # self.title_data_dict = processTitle(self.title_data)
+            # print(self.title_tag_words)
+            store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
-            WikiHandler.Index_Create_Fun(self,self.title_data )
+            WikiHandler.Index_Create_Fun(self)
         
             
 
 
 def main():
-    global fp
+    global fp, title_index
+
     fp=open("temp/title_offset.tsv","w")
     par=xml.sax.make_parser()
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
-    par.parse('data.xml')
+    par.parse('tiny.xml')
+    titleWrite(WikiHandler.title_file_count)
 
+    print(title_index)
 
 
 if __name__ == "__main__":                                          

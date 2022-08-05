@@ -47,8 +47,11 @@ def preProcess(text):
     # Removing stop words
     tokens = removeStopWords(tokens)
     # Stemming the tokens
+    start = timeit.default_timer()
     ps = PorterStemmer()
     tokens = [ps.stem(word) for word in tokens]
+    stop = timeit.default_timer()
+    print ("fe "+str(stop - start))
     tokens = [re.sub(r'^https?:\/\/.*[\r\n]*', '', text, flags=re.MULTILINE) for text in tokens]
     return tokens
 
