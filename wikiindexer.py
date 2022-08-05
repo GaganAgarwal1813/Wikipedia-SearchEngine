@@ -35,6 +35,21 @@ def titleWrite(file_count):
             f.write(str(doc_id))
             f.write("\t"+str(title_dict[doc_id])+"\n")
 
+def title_word_loc_write(file_count):
+    global title_index
+    word_position = dict()
+    fptr=0
+    file = "temp/tword_idx"+str(file_count)+".txt"
+    outfile = open(file, "w+")
+    for word in title_index:
+        index = ",".join(title_index[word])+"\n"
+        outfile.write(index)
+        if word in word_position :
+            word_position[word]['t']=fptr
+        else:
+            word_position[word] = {}
+        fptr = fptr + len(index)
+    outfile.close()
 
 def store_title_index(title_tag_words, page_count):
     global title_index
@@ -61,7 +76,8 @@ class WikiHandler(xml.sax.ContentHandler):
     
     def Index_Create_Fun(self):
         global title_dict
-        if self.title_count > 200000:
+        global title_index
+        if self.title_count > 20000000:
             print(self.title_count)
             titleWrite(self.title_file_count)
             self.title_count = 0
@@ -128,10 +144,14 @@ def main():
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
-    par.parse('tiny.xml')
+    par.parse('data.xml')
+    # Parsing Done
+    # Writing Titles to File
     titleWrite(WikiHandler.title_file_count)
 
-    print(title_index)
+    # print(title_index)
+    # Writing Title Index to File
+    title_word_loc_write(WikiHandler.title_file_count)
 
 
 if __name__ == "__main__":                                          
