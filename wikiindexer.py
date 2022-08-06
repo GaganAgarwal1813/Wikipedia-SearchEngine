@@ -11,9 +11,13 @@ import re
 stop_words_dict= defaultdict(int)
 title_dict = defaultdict(str)
 pattern = re.compile("[^a-zA-Z0-9]")
+# RE to remove urls
+regExp1 = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.DOTALL)
+# RE to remove tags & css
+regExp2 = re.compile(r'{\|(.*?)\|}',re.DOTALL)
 title_pos = list() # Which title is present at which location in the file
 title_index = defaultdict(list)
-
+body_index = defaultdict(list)
 
 def build_stopWordsDict():                               # Building Stop Words Dictionary
     global stop_words_dict
@@ -63,14 +67,36 @@ def title_word_loc_write(file_count):
         fptr = fptr + len(index)
     outfile.close()
 
-    print(word_position)
+    # print(word_position)
 
     # Writing Title Words with position to pickel file
     file = open("temp/wpos"+str(file_count)+".pickle", "wb+")
     pickle.dump(word_position, file)
     file.close()
     
+def body_word_loc_write(file_count):
+    global body_index
+    word_position = dict()
+    fptr=0
+    file = "temp/bword_idx"+str(file_count)+".txt"
+    outfile = open(file, "w+")
+    for word in body_index:
+        index = ",".join(body_index[word])+"\n"
+        outfile.write(index)
+        if word in word_position :
+            word_position[word]['b']=fptr
+        else:
+            word_position[word] = {}
+            word_position[word]['b']=fptr
+        fptr = fptr + len(index)
+    outfile.close()
 
+    print(word_position)
+
+    # Writing Body Words with position to pickel file
+    file = open("temp/wpos"+str(file_count)+".pickle", "wb+")
+    pickle.dump(word_position, file)
+    file.close()
 
 def store_title_index(title_tag_words, page_count):
     global title_index
@@ -79,6 +105,12 @@ def store_title_index(title_tag_words, page_count):
         s = index + ":" + str(title_tag_words[word])
         title_index[word].append(s)
 
+def store_body_index(body_tag_words, page_count):
+    global body_index
+    index = str(page_count)
+    for word in body_tag_words :
+        s = index + ":" + str(body_tag_words[word])
+        body_index[word].append(s)
 
 class WikiHandler(xml.sax.ContentHandler):
     title_file_count = 0
@@ -92,6 +124,8 @@ class WikiHandler(xml.sax.ContentHandler):
         self.page_stat = 0
         self.bufid = "" # For Unique ID of Title 
         self.title_tag_words = dict() # For Storing the Title Tag Words
+        self.body_words = dict() # For Storing the Body Words
+        self.body_stat = 0
 
     
     
@@ -119,28 +153,42 @@ class WikiHandler(xml.sax.ContentHandler):
             self.page_count = self.page_count + 1
             self.title_count = self.title_count + 1
             self.title_tag_words = dict() # Making the Title tag dictionary as empty for every page
+            self.body_words = dict() # Making the Body dictionary as empty for every page
+        if(tag == "text"):
+            self.body_stat = 1
         
 
     def characters(self, content):
+        global pattern
         if (self.title_id_stat==1 and self.page_stat==1):
             self.bufid += content
             title_dict[int(self.bufid)]=self.title_data
         if(self.title == 1):
             self.title_data += content
-
-
             # Adding title content to the dictionary
             title_text = content
             title_text = title_text.lower()
-            global pattern
+            
             title_text = re.split(pattern, title_text)
             for word in title_text:
                 if word:
-                    if word not in stop_words_dict:
+                    if word not in stop_words_dict and len(word)>2:
                         if word not in self.title_tag_words:
                             self.title_tag_words[word] = 1
                         else:
                             self.title_tag_words[word] += 1
+        if(self.body_stat == 1):
+            # global pattern
+            body_text = content
+            body_text = body_text.lower()
+            body_text = re.split(pattern, body_text)
+            for word in body_text:
+                if word:
+                    if word not in stop_words_dict and len(word)>2:
+                        if word not in self.body_words:
+                            self.body_words[word] = 1
+                        else:
+                            self.body_words[word] += 1
 
     def endElement(self, tag):
         if(tag=="page"):
@@ -152,13 +200,15 @@ class WikiHandler(xml.sax.ContentHandler):
             self.title = 0
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
+            self.body_stat=0
+            store_body_index(self.body_words, self.page_count)
             WikiHandler.Index_Create_Fun(self)
         
             
 
 
 def main():
-    global fp, title_index
+    global fp, title_index, body_index
 
     fp=open("temp/title_offset.tsv","w")
     par=xml.sax.make_parser()
@@ -173,6 +223,10 @@ def main():
     title_word_loc_write(WikiHandler.title_file_count)
     # Writing Title Position to Pickle File
     title_pos_pickle_write()
+    # Writing Body Index to File
+    body_word_loc_write(WikiHandler.title_file_count)
+
+    # print(body_index)
 
 if __name__ == "__main__":                                          
     start = timeit.default_timer()
