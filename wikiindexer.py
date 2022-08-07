@@ -1,10 +1,11 @@
 import timeit
+from unicodedata import category
 import xml.sax
 import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 from collections import defaultdict
-from Stemmer import Stemmer
+# from Stemmer import Stemmer
 import pickle
 import re 
 
@@ -18,6 +19,18 @@ regExp2 = re.compile(r'{\|(.*?)\|}',re.DOTALL)
 title_pos = list() # Which title is present at which location in the file
 title_index = defaultdict(list)
 body_index = defaultdict(list)
+category_index = defaultdict(list)
+info_box_index = defaultdict(list)
+word_position = dict()
+
+
+def preprocess(word):
+    word = word.strip()
+    word = word.lower()
+    stemmer = nltk.stem.SnowballStemmer('english')
+    word = stemmer.stem(word)
+    return word
+
 
 def build_stopWordsDict():                               # Building Stop Words Dictionary
     global stop_words_dict
@@ -26,12 +39,6 @@ def build_stopWordsDict():                               # Building Stop Words D
             i=i.strip(' ').strip("\n")
             stop_words_dict[i]=1
 
-def stem(datalist):                                        #Stemming the data
-    finalLis=[]
-    stemmer=Stemmer("english")
-    for i in datalist:
-        finalLis.append(stemmer.stemWord(i))
-    return finalLis
 
 def titleWrite(file_count):
     global title_dict, title_pos
@@ -52,7 +59,7 @@ def title_pos_pickle_write():
 
 def title_word_loc_write(file_count):
     global title_index
-    word_position = dict()
+    global word_position
     fptr=0
     file = "temp/tword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
@@ -67,16 +74,10 @@ def title_word_loc_write(file_count):
         fptr = fptr + len(index)
     outfile.close()
 
-    # print(word_position)
-
-    # Writing Title Words with position to pickel file
-    file = open("temp/wpos"+str(file_count)+".pickle", "wb+")
-    pickle.dump(word_position, file)
-    file.close()
     
 def body_word_loc_write(file_count):
-    global body_index
-    word_position = dict()
+    global body_index, word_position
+    
     fptr=0
     file = "temp/bword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
@@ -91,12 +92,41 @@ def body_word_loc_write(file_count):
         fptr = fptr + len(index)
     outfile.close()
 
-    print(word_position)
 
-    # Writing Body Words with position to pickel file
-    file = open("temp/wpos"+str(file_count)+".pickle", "wb+")
-    pickle.dump(word_position, file)
-    file.close()
+def category_word_loc_write(file_count):
+    global category_index, word_position
+    fptr=0
+    file = "temp/cword_idx"+str(file_count)+".txt"
+    outfile = open(file, "w+")
+    for word in category_index:
+        # print(word)
+        index = ",".join(category_index[word])+"\n"
+        # print(index)
+        outfile.write(str(index))
+        if word in word_position :
+            word_position[word]['c']=fptr
+        else:
+            word_position[word] = {}
+            word_position[word]['c']=fptr
+        fptr = fptr + len(index)
+    outfile.close()
+    # print(word_position)
+
+def info_box_loc_write(file_count):
+    global info_box_index, word_position
+    fptr=0
+    file = "temp/info_box_idx"+str(file_count)+".txt"
+    outfile = open(file, "w+")
+    for word in info_box_index:
+        index = ",".join(info_box_index[word])+"\n"
+        outfile.write(index)
+        if word in word_position :
+            word_position[word]['i']=fptr
+        else:
+            word_position[word] = {}
+            word_position[word]['i']=fptr
+        fptr = fptr + len(index)
+    outfile.close()
 
 def store_title_index(title_tag_words, page_count):
     global title_index
@@ -112,6 +142,21 @@ def store_body_index(body_tag_words, page_count):
         s = index + ":" + str(body_tag_words[word])
         body_index[word].append(s)
 
+def store_category_index(category_tag_words, page_count):
+    global category_index
+    index = str(page_count)
+    for word in category_tag_words :
+        s = index + ":" + str(category_tag_words[word])
+        category_index[word].append(s)
+    # print(category_index)
+def store_info_box_index(info_box_words, page_count):
+    global info_box_index
+    index = str(page_count)
+    for word in info_box_words :
+        s = index + ":" + str(info_box_words[word])
+        info_box_index[word].append(s)
+
+
 class WikiHandler(xml.sax.ContentHandler):
     title_file_count = 0
     def __init__(self):
@@ -125,6 +170,8 @@ class WikiHandler(xml.sax.ContentHandler):
         self.bufid = "" # For Unique ID of Title 
         self.title_tag_words = dict() # For Storing the Title Tag Words
         self.body_words = dict() # For Storing the Body Words
+        self.category_words = dict() # For Storing the Category Words
+        self.info_box_words = dict()
         self.body_stat = 0
 
     
@@ -133,7 +180,7 @@ class WikiHandler(xml.sax.ContentHandler):
         global title_dict
         global title_index
         if self.title_count > 20000000:
-            print(self.title_count)
+            # print(self.title_count)
             titleWrite(self.title_file_count)
             self.title_count = 0
             self.title_file_count = self.title_file_count + 1
@@ -159,7 +206,7 @@ class WikiHandler(xml.sax.ContentHandler):
         
 
     def characters(self, content):
-        global pattern
+        global pattern, regExp1, regExp2
         if (self.title_id_stat==1 and self.page_stat==1):
             self.bufid += content
             title_dict[int(self.bufid)]=self.title_data
@@ -179,11 +226,44 @@ class WikiHandler(xml.sax.ContentHandler):
                             self.title_tag_words[word] += 1
         if(self.body_stat == 1):
             # global pattern
+            stemmer = nltk.stem.SnowballStemmer('english')
             body_text = content
+            body_text = regExp1.sub('',body_text)
+            body_text = regExp2.sub('',body_text)
+
+            temp_category_word = re.findall("\[\[Category:(.*?)\]\]", body_text)
+            if temp_category_word:
+                for w in temp_category_word:
+                    w = re.split(pattern, w)
+                    for word in w:
+                        word = preprocess(word)
+                        # print(word)
+                        if word:
+                            if word not in stop_words_dict and len(word)>2:
+                                if word not in self.category_words:
+                                    self.category_words[word] = 1
+                                else:
+                                    self.category_words[word] += 1
+                
+            temp_info_box_word = re.findall("{{Infobox((.|\n)*?)}}", body_text)
+            if temp_info_box_word:
+                for w in temp_info_box_word:
+                    w = re.split(pattern, w)
+                    for word in w:
+                        word = preprocess(word)
+                        if word:
+                            if word not in stop_words_dict and len(word)>2:
+                                if word not in self.info_box_words:
+                                    self.info_box_words[word] = 1
+                                else:
+                                    self.info_box_words[word] += 1
+
             body_text = body_text.lower()
             body_text = re.split(pattern, body_text)
             for word in body_text:
                 if word:
+                    
+                    word = stemmer.stem(word)
                     if word not in stop_words_dict and len(word)>2:
                         if word not in self.body_words:
                             self.body_words[word] = 1
@@ -202,9 +282,16 @@ class WikiHandler(xml.sax.ContentHandler):
         if(tag=="text"):
             self.body_stat=0
             store_body_index(self.body_words, self.page_count)
+            # print(self.category_words)
+            store_category_index(self.category_words, self.page_count)
+            store_info_box_index(self.info_box_words, self.page_count)
             WikiHandler.Index_Create_Fun(self)
         
-            
+def dump_data_pickel():
+    global word_position
+    file = open("temp/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
+    pickle.dump(word_position, file)
+    file.close()         
 
 
 def main():
@@ -224,8 +311,18 @@ def main():
     # Writing Title Position to Pickle File
     title_pos_pickle_write()
     # Writing Body Index to File
+
     body_word_loc_write(WikiHandler.title_file_count)
 
+    # Writing Category Index to File
+    category_word_loc_write(WikiHandler.title_file_count)
+
+    # writing Info-Box index to file
+    info_box_loc_write(WikiHandler.title_file_count)
+
+    dump_data_pickel()
+    
+    
     # print(body_index)
 
 if __name__ == "__main__":                                          
