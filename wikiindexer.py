@@ -5,10 +5,10 @@ import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 from collections import defaultdict
-# from Stemmer import Stemmer
 import pickle
 import re 
 
+stemmer = nltk.stem.SnowballStemmer('english')
 stop_words_dict= defaultdict(int)
 title_dict = defaultdict(str)
 pattern = re.compile("[^a-zA-Z0-9]")
@@ -26,9 +26,10 @@ word_position = dict()
 
 
 def preprocess(word):
+    global stemmer
     word = word.strip()
     word = word.lower()
-    stemmer = nltk.stem.SnowballStemmer('english')
+    
     word = stemmer.stem(word)
     return word
 
@@ -161,9 +162,8 @@ def store_info_box_index(info_box_words, page_count):
 
 
 def external_link_process(ext_link_cont):
-    # print("External Link Process")
-    # print(ext_link_cont)
     links = ''
+    global stemmer
     text = (ext_link_cont.split("==External links=="))
     if len(text)>1:
         text=text[1].split("\n")[1:]
@@ -171,18 +171,23 @@ def external_link_process(ext_link_cont):
             if txt=='':
                 break
             if txt[0]=='*':
+                txt = stemmer.stem(txt)
                 text_split=txt.split(' ')
                 link=[wd for wd in text_split if 'http' not in wd]
                 link=' '.join(link)
                 links+=' '+link
-    # tokenize the links
+                
     external_link_words = dict()
-    links = nltk.word_tokenize(links)
+    links = links.replace('\n', ' ').replace('File:', ' ')
+    links = re.sub('(http://[^ ]+)', ' ', links)
+    links = re.sub('(https://[^ ]+)', ' ', links)
+    links = re.sub('\{.*?\}|\[.*?\]|\=\=.*?\=\=', ' ', links)
+    links = ''.join([i if ord(i) < 128 else ' ' for i in links])
     links = ''.join(ch if ch.isalnum() else ' ' for ch in links)
     links = links.split()
     for word in links:
-        # print(word)
         if word:
+            word = word.lower()
             if word not in stop_words_dict and len(word)>2:
                 if word not in external_link_words:
                     external_link_words[word] = 1
@@ -264,7 +269,7 @@ class WikiHandler(xml.sax.ContentHandler):
         if(self.body_stat == 1):
             # global pattern
             self.ext_link_cont += content
-            stemmer = nltk.stem.SnowballStemmer('english')
+            global stemmer
             body_text = content
             body_text = regExp1.sub('',body_text)
             body_text = regExp2.sub('',body_text)
