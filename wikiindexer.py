@@ -24,6 +24,7 @@ info_box_index = defaultdict(list)
 word_position = dict()
 
 
+
 def preprocess(word):
     word = word.strip()
     word = word.lower()
@@ -155,10 +156,45 @@ def store_info_box_index(info_box_words, page_count):
     for word in info_box_words :
         s = index + ":" + str(info_box_words[word])
         info_box_index[word].append(s)
+    # print(info_box_index)
+
+
+
+def external_link_process(ext_link_cont):
+    # print("External Link Process")
+    # print(ext_link_cont)
+    links = ''
+    text = (ext_link_cont.split("==External links=="))
+    if len(text)>1:
+        text=text[1].split("\n")[1:]
+        for txt in text:
+            if txt=='':
+                break
+            if txt[0]=='*':
+                text_split=txt.split(' ')
+                link=[wd for wd in text_split if 'http' not in wd]
+                link=' '.join(link)
+                links+=' '+link
+    # tokenize the links
+    external_link_words = dict()
+    links = nltk.word_tokenize(links)
+    links = ''.join(ch if ch.isalnum() else ' ' for ch in links)
+    links = links.split()
+    for word in links:
+        # print(word)
+        if word:
+            if word not in stop_words_dict and len(word)>2:
+                if word not in external_link_words:
+                    external_link_words[word] = 1
+                else:
+                    external_link_words[word] += 1
+    print(external_link_words)
+
 
 
 class WikiHandler(xml.sax.ContentHandler):
     title_file_count = 0
+    ext_link_cont = ""
     def __init__(self):
         self.title=0
         self.title_data = ""
@@ -173,6 +209,7 @@ class WikiHandler(xml.sax.ContentHandler):
         self.category_words = dict() # For Storing the Category Words
         self.info_box_words = dict()
         self.body_stat = 0
+        self.ext_link_cont = ""
 
     
     
@@ -182,10 +219,10 @@ class WikiHandler(xml.sax.ContentHandler):
         if self.title_count > 20000000:
             # print(self.title_count)
             titleWrite(self.title_file_count)
+            external_link_process(self.ext_link_cont)
             self.title_count = 0
             self.title_file_count = self.title_file_count + 1
             title_dict=defaultdict(str)
-        
             
     
     def startElement(self,tag,attr):
@@ -226,6 +263,7 @@ class WikiHandler(xml.sax.ContentHandler):
                             self.title_tag_words[word] += 1
         if(self.body_stat == 1):
             # global pattern
+            self.ext_link_cont += content
             stemmer = nltk.stem.SnowballStemmer('english')
             body_text = content
             body_text = regExp1.sub('',body_text)
@@ -244,8 +282,9 @@ class WikiHandler(xml.sax.ContentHandler):
                                     self.category_words[word] = 1
                                 else:
                                     self.category_words[word] += 1
-                
-            temp_info_box_word = re.findall("{{Infobox((.|\n)*?)}}", body_text)
+            # print(body_text)  
+            temp_info_box_word = re.findall("{{Infobox", body_text)
+            # print(temp_info_box_word)
             if temp_info_box_word:
                 for w in temp_info_box_word:
                     w = re.split(pattern, w)
@@ -258,6 +297,9 @@ class WikiHandler(xml.sax.ContentHandler):
                                 else:
                                     self.info_box_words[word] += 1
 
+            # temp_category_word = re.findall("==External links==/\n(.*?)", body_text)
+            # print(temp_category_word)
+
             body_text = body_text.lower()
             body_text = re.split(pattern, body_text)
             for word in body_text:
@@ -269,11 +311,11 @@ class WikiHandler(xml.sax.ContentHandler):
                             self.body_words[word] = 1
                         else:
                             self.body_words[word] += 1
-
+           
     def endElement(self, tag):
         if(tag=="page"):
             self.page_stat=0
-            self.title_count+=1            
+            self.title_count+=1         
         if(tag=="id"):
             self.title_id_stat=0
         if(tag == "title"):
@@ -282,9 +324,10 @@ class WikiHandler(xml.sax.ContentHandler):
         if(tag=="text"):
             self.body_stat=0
             store_body_index(self.body_words, self.page_count)
-            # print(self.category_words)
             store_category_index(self.category_words, self.page_count)
             store_info_box_index(self.info_box_words, self.page_count)
+            external_link_process(self.ext_link_cont)
+            self.ext_link_cont = ""   
             WikiHandler.Index_Create_Fun(self)
         
 def dump_data_pickel():
@@ -319,6 +362,8 @@ def main():
 
     # writing Info-Box index to file
     info_box_loc_write(WikiHandler.title_file_count)
+
+    
 
     dump_data_pickel()
     
