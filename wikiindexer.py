@@ -294,30 +294,10 @@ class WikiHandler(xml.sax.ContentHandler):
         self.title_file_count = 0
         self.title_id_stat = 0
         self.page_stat = 0
-        # self.bufid = "" # For Unique ID of Title 
         self.title_tag_words = dict() # For Storing the Title Tag Words
-        # self.body_words = dict() # For Storing the Body Words
         self.category_words = dict() # For Storing the Category Words
-        # self.info_box_words = dict()
         self.body_stat = 0
         self.ext_link_cont = ""
-
-
-    
-    
-    # def Index_Create_Fun(self):
-    #     global title_dict
-    #     global title_index
-    #     if self.title_count > 20000000:
-    #         # print(self.title_count)
-    #         titleWrite(self.title_file_count)
-    #         self.title_count = 0
-    #         self.title_file_count = self.title_file_count + 1
-    #         title_dict=defaultdict(str)
-        
-
-        
-
 
     
     def startElement(self,tag,attr):
@@ -332,16 +312,12 @@ class WikiHandler(xml.sax.ContentHandler):
             self.page_count = self.page_count + 1
             self.title_count = self.title_count + 1
             self.title_tag_words = dict() # Making the Title tag dictionary as empty for every page
-            # self.body_words = dict() # Making the Body dictionary as empty for every page
         if(tag == "text"):
             self.body_stat = 1
         
 
     def characters(self, content):
         global pattern, regExp1, regExp2, title_pos
-        # if (self.title_id_stat==1 and self.page_stat==1):
-        #     self.bufid += content
-        #     title_dict[int(self.bufid)]=self.title_data
         if(self.title == 1):
             self.title_data += content
             # Adding title content to the dictionary
@@ -457,8 +433,7 @@ def main():
     par.parse('data.xml')
     # Parsing Done
     # Writing Titles to File
-    # titleWrite(WikiHandler.title_file_count)
-    # Writing Title Index to File
+    
     title_word_loc_write(WikiHandler.title_file_count)
     # Writing Title Position to Pickle File
     title_pos_pickle_write()
@@ -472,16 +447,13 @@ def main():
     # writing Info-Box index to file
     info_box_loc_write(WikiHandler.title_file_count)
 
-    # print(ext_links_index)
     # Writing External Link Index in File
     ext_link_loc_write(WikiHandler.title_file_count)
 
-    # print(word_position)
 
     dump_data_pickel()
     
     
-    # print(body_index)
 
 if __name__ == "__main__":                                          
     start = timeit.default_timer()
