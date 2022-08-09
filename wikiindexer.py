@@ -8,9 +8,10 @@ from collections import defaultdict
 import pickle
 import re 
 
+
 stemmer = nltk.stem.SnowballStemmer('english')
 stop_words_dict= defaultdict(int)
-title_dict = defaultdict(str)
+# title_dict = defaultdict(str)
 pattern = re.compile("[^a-zA-Z0-9]")
 # RE to remove urls
 regExp1 = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.DOTALL)
@@ -23,7 +24,7 @@ category_index = defaultdict(list)
 info_box_index = defaultdict(list)
 ext_links_index = defaultdict(list)
 word_position = dict()
-
+title_tags = open("temp/title0"+".txt", "w+")
 
 
 def preprocess(word):
@@ -43,16 +44,11 @@ def build_stopWordsDict():                               # Building Stop Words D
             stop_words_dict[i]=1
 
 
-def titleWrite(file_count):
-    global title_dict, title_pos
-    with open("temp/title"+str(file_count)+".txt","w") as f:
-        # li=sorted(title_dict.keys())
-        # fp.write(str(li[0]))
-        for value in (title_dict.values()):
-            title_pos.append(f.tell())
-            f.write(str(value)+"\n")
-            
-            # f.write("\t"+str(title_dict[doc_id])+"\n")
+def titleWrite(file_count, title_text):
+    global title_pos, title_tags
+    title_pos.append(title_tags.tell())
+    title_tags.write(title_text)
+
 
 def title_pos_pickle_write():
     global title_pos
@@ -76,7 +72,7 @@ def title_word_loc_write(file_count):
             word_position[word]['t']=fptr
         fptr = fptr + len(index)
     outfile.close()
-
+    
     
 # def body_word_loc_write(file_count):
 #     global body_index, word_position
@@ -163,6 +159,8 @@ def store_title_index(title_tag_words, page_count):
 #         s = index + ":" + str(body_tag_words[word])
 #         body_index[word].append(s)
 
+
+
 def store_category_index(category_tag_words, page_count):
     global category_index
     index = str(page_count)
@@ -214,7 +212,6 @@ def external_link_process(ext_link_cont, page_count):
     # print(links)
     links = links.split()
     for word in links:
-        
         if word:
             word = word.lower()
             if word not in stop_words_dict and len(word)>2:
@@ -222,9 +219,68 @@ def external_link_process(ext_link_cont, page_count):
                     external_link_words[word] = 1
                 else:
                     external_link_words[word] += 1
-    print(external_link_words)
+    # print(external_link_words)
     store_ext_links_index(external_link_words, page_count)
 
+
+def tokenizeInfo(text):
+    global stemmer
+    text = re.split(r'[^A-Za-z0-9]+', text)
+    tokens = []
+    for line in text:
+        word = stemmer.stem(line)
+        if len(word) > 2 and len(word) < 20 and word not in stop_words_dict:
+            tokens.append(word)
+    return tokens
+
+
+def processInfo(text, page_count):
+    # print(text)
+    cont = text.split("{{infobox")
+    info = []
+    if len(cont) <= 1:
+        return
+    flag= False
+    for infob in cont:
+        traw = infob.split("\n")
+        if (not flag):
+            flag=True
+        else :
+            for lines in traw:
+                if lines == "}}":
+                    break
+                info += tokenizeInfo(lines)
+    info_box_words = {}
+    for i in info:
+        if i in info_box_words:
+            info_box_words[i] = info_box_words[i]+1
+        else:
+            info_box_words[i] = 1
+    
+    store_info_box_index(info_box_words, page_count)
+    # print(d)
+
+def refandextType(name):
+	l = []
+	l.append("==" + name + "==")
+	l.append("== " + name + "==")		
+	l.append("==" + name + " ==")		
+	l.append("== " + name + " ==")		
+	return l
+
+def process_body(text, page_count):
+    text=text.lower()
+    ref = refandextType("references")
+    data=text.split(ref[0])
+    if data[0] == text:
+        data= text.split(ref[1])
+    if data[0]==text:
+        data= text.split(ref[2])
+    if data[0]==text:
+        data= text.split(ref[3])
+
+    
+    processInfo(data[0], page_count)
 
 
 class WikiHandler(xml.sax.ContentHandler):
@@ -238,32 +294,37 @@ class WikiHandler(xml.sax.ContentHandler):
         self.title_file_count = 0
         self.title_id_stat = 0
         self.page_stat = 0
-        self.bufid = "" # For Unique ID of Title 
+        # self.bufid = "" # For Unique ID of Title 
         self.title_tag_words = dict() # For Storing the Title Tag Words
         # self.body_words = dict() # For Storing the Body Words
         self.category_words = dict() # For Storing the Category Words
-        self.info_box_words = dict()
+        # self.info_box_words = dict()
         self.body_stat = 0
         self.ext_link_cont = ""
 
+
     
     
-    def Index_Create_Fun(self):
-        global title_dict
-        global title_index
-        if self.title_count > 20000000:
-            # print(self.title_count)
-            titleWrite(self.title_file_count)
-            self.title_count = 0
-            self.title_file_count = self.title_file_count + 1
-            title_dict=defaultdict(str)
-            
+    # def Index_Create_Fun(self):
+    #     global title_dict
+    #     global title_index
+    #     if self.title_count > 20000000:
+    #         # print(self.title_count)
+    #         titleWrite(self.title_file_count)
+    #         self.title_count = 0
+    #         self.title_file_count = self.title_file_count + 1
+    #         title_dict=defaultdict(str)
+        
+
+        
+
+
     
     def startElement(self,tag,attr):
         if(tag=="id" and self.page_stat==0):
             self.page_stat=1
             self.title_id_stat=1
-            self.bufid=""
+            # self.bufid=""
         if(tag == "title"):
             self.title = 1
             self.title_data = ""
@@ -277,24 +338,14 @@ class WikiHandler(xml.sax.ContentHandler):
         
 
     def characters(self, content):
-        global pattern, regExp1, regExp2
-        if (self.title_id_stat==1 and self.page_stat==1):
-            self.bufid += content
-            title_dict[int(self.bufid)]=self.title_data
+        global pattern, regExp1, regExp2, title_pos
+        # if (self.title_id_stat==1 and self.page_stat==1):
+        #     self.bufid += content
+        #     title_dict[int(self.bufid)]=self.title_data
         if(self.title == 1):
             self.title_data += content
             # Adding title content to the dictionary
-            title_text = content
-            title_text = title_text.lower()
             
-            title_text = re.split(pattern, title_text)
-            for word in title_text:
-                if word:
-                    if word not in stop_words_dict and len(word)>2:
-                        if word not in self.title_tag_words:
-                            self.title_tag_words[word] = 1
-                        else:
-                            self.title_tag_words[word] += 1
         if(self.body_stat == 1):
             # global pattern
             self.ext_link_cont += content
@@ -302,6 +353,8 @@ class WikiHandler(xml.sax.ContentHandler):
             body_text = content
             body_text = regExp1.sub('',body_text)
             body_text = regExp2.sub('',body_text)
+
+
             # try :
             #     temp_category_word = re.findall("\[\[Category:(.*?)\]\]", body_text)
             #     if temp_category_word:
@@ -321,19 +374,22 @@ class WikiHandler(xml.sax.ContentHandler):
             # except :
             #     pass
             # print(body_text)  
-            temp_info_box_word = ("{{Infobox((.|\n)*?)}}",  body_text)
+            # processInfo(body_text)
+
+            
+
             # print(temp_info_box_word)
-            if temp_info_box_word:
-                for w in temp_info_box_word:
-                    w = re.split(pattern, w)
-                    for word in w:
-                        word = preprocess(word)
-                        if word:
-                            if word not in stop_words_dict and len(word)>2:
-                                if word not in self.info_box_words:
-                                    self.info_box_words[word] = 1
-                                else:
-                                    self.info_box_words[word] += 1
+            # if temp_info_box_word:
+            #     for w in temp_info_box_word:
+            #         w = re.split(pattern, w)
+            #         for word in w:
+            #             word = preprocess(word)
+            #             if word:
+            #                 if word not in stop_words_dict and len(word)>2:
+            #                     if word not in self.info_box_words:
+            #                         self.info_box_words[word] = 1
+            #                     else:
+            #                         self.info_box_words[word] += 1
 
             
 
@@ -357,15 +413,31 @@ class WikiHandler(xml.sax.ContentHandler):
             self.title_id_stat=0
         if(tag == "title"):
             self.title = 0
+            title_text = self.title_data
+            title_text = title_text + "\n"
+            titleWrite(self.title_file_count, title_text)
+            title_text = self.title_data.lower()
+            title_text = re.split(pattern, title_text)
+            for word in title_text:
+                if word:
+                    if word not in stop_words_dict and len(word)>2:
+                        if word not in self.title_tag_words:
+                            self.title_tag_words[word] = 1
+                        else:
+                            self.title_tag_words[word] += 1
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
             self.body_stat=0
             # store_body_index(self.body_words, self.page_count)
             # store_category_index(self.category_words, self.page_count)
-            store_info_box_index(self.info_box_words, self.page_count)
+            # store_info_box_index(self.info_box_words, self.page_count)
             external_link_process(self.ext_link_cont, self.page_count)
+            process_body(self.ext_link_cont, self.page_count)
             self.ext_link_cont = ""   
-            WikiHandler.Index_Create_Fun(self)
+            # WikiHandler.Index_Create_Fun(self)
+
+
+
         
 def dump_data_pickel():
     global word_position
@@ -382,10 +454,10 @@ def main():
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
-    par.parse('tiny.xml')
+    par.parse('data.xml')
     # Parsing Done
     # Writing Titles to File
-    titleWrite(WikiHandler.title_file_count)
+    # titleWrite(WikiHandler.title_file_count)
     # Writing Title Index to File
     title_word_loc_write(WikiHandler.title_file_count)
     # Writing Title Position to Pickle File
@@ -403,6 +475,9 @@ def main():
     # print(ext_links_index)
     # Writing External Link Index in File
     ext_link_loc_write(WikiHandler.title_file_count)
+
+    # print(word_position)
+
     dump_data_pickel()
     
     
