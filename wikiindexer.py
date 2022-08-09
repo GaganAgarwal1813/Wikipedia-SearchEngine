@@ -96,15 +96,14 @@ def category_word_loc_write(file_count):
     file = "temp/cword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in category_index:
-        # print(word)
         index = ",".join(category_index[word])+"\n"
         # print(index)
-        outfile.write(str(index))
         if word in word_position :
             word_position[word]['c']=fptr
         else:
             word_position[word] = {}
             word_position[word]['c']=fptr
+        outfile.write(str(index))
         fptr = fptr + len(index)
     outfile.close()
     # print(word_position)
@@ -226,6 +225,20 @@ def tokenizeInfo(text):
     return tokens
 
 
+def extractCategories(text, page_count):
+    cat = re.findall(r"\[\[category:(.*)\]\]", text)
+    d = {}
+    for line in cat:
+        words = tokenizeInfo(line)
+        for i in words:
+            if i in d:
+                d[i] = d[i]+1
+            else:
+                d[i] = 1
+    # print(d)
+    store_category_index(d, page_count)
+
+
 def processInfo(text, page_count):
     # print(text)
     cont = text.split("{{infobox")
@@ -260,9 +273,13 @@ def refandextType(name):
 	l.append("== " + name + " ==")		
 	return l
 
-def process_body(text, page_count):
+def processContent(text, page_count):
     text=text.lower()
+    references={}
+    links={}
+    # categories={}
     ref = refandextType("references")
+    ext = refandextType("external links")
     data=text.split(ref[0])
     if data[0] == text:
         data= text.split(ref[1])
@@ -270,9 +287,56 @@ def process_body(text, page_count):
         data= text.split(ref[2])
     if data[0]==text:
         data= text.split(ref[3])
+    if len(data)==1:
+
+        extractCategories(data[0], page_count)
+
+        haslink=1
+        catdata=data[0].split(ext[0])
+        if len(catdata)==1:
+            catdata=data[0].split(ext[1])
+        if len(catdata)==1:
+            catdata=data[0].split(ext[2])
+        if len(catdata)==1:
+            catdata=data[0].split(ext[3])
+        if len(catdata)==1:
+            links={}
+            haslink=0
+        # if (haslink):
+        #     links=extractLinks(catdata[1])
+    else:
+        haslink=1
+        catdata=data[1].split(ext[0])
+        if len(catdata)==1:
+            catdata=data[1].split(ext[1])
+        if len(catdata)==1:
+            catdata=data[1].split(ext[2])
+        if len(catdata)==1:
+            catdata=data[1].split(ext[3])
+        if len(catdata)==1:
+            links={}
+            haslink=0
+        # if (haslink):
+        #     links = extractLinks(catdata[1])
+        
+        # references = getReferences(data[1])
+        extractCategories(data[1], page_count)
+ 
+    # infobox= getInfobox(data[0])
+    # body = tokenize(data[0])
+    # d = {}
+    # for i in body:
+    # 	if i in d:
+    # 		d[i] = d[i]+1
+    # 	else:
+    # 		d[i] = 1
+    # return d, references, categories, links, infobox
 
     
+
+
     processInfo(data[0], page_count)
+    # extractCategories(data[1], page_count)
 
 
 class WikiHandler(xml.sax.ContentHandler):
@@ -392,7 +456,7 @@ class WikiHandler(xml.sax.ContentHandler):
             # store_category_index(self.category_words, self.page_count)
             # store_info_box_index(self.info_box_words, self.page_count)
             external_link_process(self.ext_link_cont, self.page_count)
-            process_body(self.ext_link_cont, self.page_count)
+            processContent(self.ext_link_cont, self.page_count)
             self.ext_link_cont = ""   
             # WikiHandler.Index_Create_Fun(self)
 
@@ -426,7 +490,7 @@ def main():
     # body_word_loc_write(WikiHandler.title_file_count)
 
     # Writing Category Index to File
-    # category_word_loc_write(WikiHandler.title_file_count)
+    category_word_loc_write(WikiHandler.title_file_count)
 
     # writing Info-Box index to file
     info_box_loc_write(WikiHandler.title_file_count)

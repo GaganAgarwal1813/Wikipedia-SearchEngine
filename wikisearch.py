@@ -153,9 +153,9 @@ def main():
     query = sys.argv[1]
     query = query.lower()
     # title_test(query)
-    # category_search(query)
+    category_search(query)
     # ext_search(query)
-    info(query)
+    # info(query)
 
 if __name__ == "__main__":
     main()
