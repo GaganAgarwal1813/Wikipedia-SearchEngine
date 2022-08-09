@@ -1,5 +1,4 @@
 import timeit
-from unicodedata import category
 import xml.sax
 import nltk
 nltk.download('punkt')
@@ -11,7 +10,6 @@ import re
 
 stemmer = nltk.stem.SnowballStemmer('english')
 stop_words_dict= defaultdict(int)
-# title_dict = defaultdict(str)
 pattern = re.compile("[^a-zA-Z0-9]")
 # RE to remove urls
 regExp1 = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.DOTALL)
@@ -113,19 +111,18 @@ def category_word_loc_write(file_count):
 
 def info_box_loc_write(file_count):
     global info_box_index, word_position
-    # print(info_box_index)
     fptr=0
     file = "temp/info_box_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in info_box_index:
         index = ",".join(info_box_index[word])+"\n"
-        outfile.write(index)
         # print("word", word)
         if word in word_position :
             word_position[word]['i']=fptr
         else:
             word_position[word] = {}
             word_position[word]['i']=fptr
+        outfile.write(index)
         fptr = fptr + len(index)
     outfile.close()
 
@@ -188,9 +185,7 @@ def external_link_process(ext_link_cont, page_count):
     links = ''
     global stemmer
     text = (ext_link_cont.split("==External links=="))
-    # print(text)
     if len(text)>1:
-        # print(text)
         text=text[1].split("\n")[1:]
         for txt in text:
             if txt=='':
@@ -201,7 +196,6 @@ def external_link_process(ext_link_cont, page_count):
                 link=[wd for wd in text_split if 'http' not in wd]
                 link=' '.join(link)
                 links+=' '+link
-    # print(links)        
     external_link_words = dict()
     links = links.replace('\n', ' ').replace('File:', ' ')
     links = re.sub('(http://[^ ]+)', ' ', links)
@@ -209,7 +203,6 @@ def external_link_process(ext_link_cont, page_count):
     links = re.sub('\{.*?\}|\[.*?\]|\=\=.*?\=\=', ' ', links)
     links = ''.join([i if ord(i) < 128 else ' ' for i in links])
     links = ''.join(ch if ch.isalnum() else ' ' for ch in links)
-    # print(links)
     links = links.split()
     for word in links:
         if word:
@@ -219,7 +212,6 @@ def external_link_process(ext_link_cont, page_count):
                     external_link_words[word] = 1
                 else:
                     external_link_words[word] += 1
-    # print(external_link_words)
     store_ext_links_index(external_link_words, page_count)
 
 
@@ -304,7 +296,6 @@ class WikiHandler(xml.sax.ContentHandler):
         if(tag=="id" and self.page_stat==0):
             self.page_stat=1
             self.title_id_stat=1
-            # self.bufid=""
         if(tag == "title"):
             self.title = 1
             self.title_data = ""
@@ -323,14 +314,21 @@ class WikiHandler(xml.sax.ContentHandler):
             # Adding title content to the dictionary
             
         if(self.body_stat == 1):
-            # global pattern
             self.ext_link_cont += content
             global stemmer
             body_text = content
             body_text = regExp1.sub('',body_text)
             body_text = regExp2.sub('',body_text)
-
-
+    
+            # cat = re.findall(r"\[\[category:(.*)\]\]", body_text)
+            # for line in cat:
+            #     words = tokenizeInfo(line)
+            #     for i in words:
+            #         if i in self.category_words:
+            #             self.category_words[i] = self.category_words[i]+1
+            #         else:
+            #             self.category_words[i] = 1
+          
             # try :
             #     temp_category_word = re.findall("\[\[Category:(.*?)\]\]", body_text)
             #     if temp_category_word:
@@ -354,20 +352,6 @@ class WikiHandler(xml.sax.ContentHandler):
 
             
 
-            # print(temp_info_box_word)
-            # if temp_info_box_word:
-            #     for w in temp_info_box_word:
-            #         w = re.split(pattern, w)
-            #         for word in w:
-            #             word = preprocess(word)
-            #             if word:
-            #                 if word not in stop_words_dict and len(word)>2:
-            #                     if word not in self.info_box_words:
-            #                         self.info_box_words[word] = 1
-            #                     else:
-            #                         self.info_box_words[word] += 1
-
-            
 
             # body_text = body_text.lower()
             # body_text = re.split(pattern, body_text)
