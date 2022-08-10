@@ -1,8 +1,8 @@
 import timeit
 import xml.sax
 import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
+# nltk.download('punkt')
+# nltk.download('stopwords')
 from collections import defaultdict
 import pickle
 import re 
@@ -21,17 +21,18 @@ title_index = defaultdict(list)
 category_index = defaultdict(list)
 info_box_index = defaultdict(list)
 ext_links_index = defaultdict(list)
+references_index = defaultdict(list)
 word_position = dict()
 title_tags = open("temp/title0"+".txt", "w+")
 
 
-def preprocess(word):
-    global stemmer
-    word = word.strip()
-    word = word.lower()
+# def preprocess(word):
+#     global stemmer
+#     word = word.strip()
+#     word = word.lower()
     
-    word = stemmer.stem(word)
-    return word
+#     word = stemmer.stem(word)
+#     return word
 
 
 def build_stopWordsDict():                               # Building Stop Words Dictionary
@@ -125,6 +126,23 @@ def info_box_loc_write(file_count):
         fptr = fptr + len(index)
     outfile.close()
 
+def references_loc_write(file_count):
+    global references_index, word_position
+    fptr = 0
+    file = "temp/references_idx"+str(file_count)+".txt"
+    outfile = open(file, "w+")
+    for word in references_index:
+        index = ",".join(references_index[word])+"\n"
+        
+        if word in word_position :
+            word_position[word]['r']=fptr
+        else:
+            word_position[word] = {}
+            word_position[word]['r']=fptr
+        outfile.write(index)
+        fptr = fptr + len(index)
+    outfile.close()
+
 def ext_link_loc_write(file_count):
     global ext_links_index, word_position
     fptr = 0
@@ -163,6 +181,13 @@ def store_category_index(category_tag_words, page_count):
     for word in category_tag_words :
         s = index + ":" + str(category_tag_words[word])
         category_index[word].append(s)
+
+def store_references(references_words, page_count):
+    global references_index
+    index = str(page_count)
+    for word in references_words :
+        s = index + ":" + str(references_words[word])
+        references_index[word].append(s)
 
 def store_info_box_index(info_box_words, page_count):
     # print(info_box_words)
@@ -220,7 +245,7 @@ def tokenizeInfo(text):
     tokens = []
     for line in text:
         word = stemmer.stem(line)
-        if len(word) > 2 and len(word) < 20 and word not in stop_words_dict:
+        if len(word) > 2 and len(word) < 10 and word not in stop_words_dict:
             tokens.append(word)
     return tokens
 
@@ -235,12 +260,10 @@ def extractCategories(text, page_count):
                 d[i] = d[i]+1
             else:
                 d[i] = 1
-    # print(d)
     store_category_index(d, page_count)
 
 
 def processInfo(text, page_count):
-    # print(text)
     cont = text.split("{{infobox")
     info = []
     if len(cont) <= 1:
@@ -273,11 +296,20 @@ def refandextType(name):
 	l.append("== " + name + " ==")		
 	return l
 
+def getReferences(text, page_count):
+    ref = text.split("[[")
+    ref = tokenizeInfo(ref[0])
+    d = {}
+    for i in ref:
+        if i.isnumeric()==False:
+            if i in d:
+                d[i] +=1
+            else:
+                d[i] = 1
+    store_references(d, page_count)
+
 def processContent(text, page_count):
     text=text.lower()
-    references={}
-    links={}
-    # categories={}
     ref = refandextType("references")
     ext = refandextType("external links")
     data=text.split(ref[0])
@@ -288,10 +320,7 @@ def processContent(text, page_count):
     if data[0]==text:
         data= text.split(ref[3])
     if len(data)==1:
-
         extractCategories(data[0], page_count)
-
-        haslink=1
         catdata=data[0].split(ext[0])
         if len(catdata)==1:
             catdata=data[0].split(ext[1])
@@ -299,13 +328,7 @@ def processContent(text, page_count):
             catdata=data[0].split(ext[2])
         if len(catdata)==1:
             catdata=data[0].split(ext[3])
-        if len(catdata)==1:
-            links={}
-            haslink=0
-        # if (haslink):
-        #     links=extractLinks(catdata[1])
     else:
-        haslink=1
         catdata=data[1].split(ext[0])
         if len(catdata)==1:
             catdata=data[1].split(ext[1])
@@ -313,30 +336,9 @@ def processContent(text, page_count):
             catdata=data[1].split(ext[2])
         if len(catdata)==1:
             catdata=data[1].split(ext[3])
-        if len(catdata)==1:
-            links={}
-            haslink=0
-        # if (haslink):
-        #     links = extractLinks(catdata[1])
-        
-        # references = getReferences(data[1])
+        getReferences(data[1], page_count)
         extractCategories(data[1], page_count)
- 
-    # infobox= getInfobox(data[0])
-    # body = tokenize(data[0])
-    # d = {}
-    # for i in body:
-    # 	if i in d:
-    # 		d[i] = d[i]+1
-    # 	else:
-    # 		d[i] = 1
-    # return d, references, categories, links, infobox
-
-    
-
-
     processInfo(data[0], page_count)
-    # extractCategories(data[1], page_count)
 
 
 class WikiHandler(xml.sax.ContentHandler):
@@ -380,43 +382,10 @@ class WikiHandler(xml.sax.ContentHandler):
         if(self.body_stat == 1):
             self.ext_link_cont += content
             global stemmer
-            body_text = content
-            body_text = regExp1.sub('',body_text)
-            body_text = regExp2.sub('',body_text)
+            # body_text = content
+            # body_text = regExp1.sub('',body_text)
+            # body_text = regExp2.sub('',body_text)
     
-            # cat = re.findall(r"\[\[category:(.*)\]\]", body_text)
-            # for line in cat:
-            #     words = tokenizeInfo(line)
-            #     for i in words:
-            #         if i in self.category_words:
-            #             self.category_words[i] = self.category_words[i]+1
-            #         else:
-            #             self.category_words[i] = 1
-          
-            # try :
-            #     temp_category_word = re.findall("\[\[Category:(.*?)\]\]", body_text)
-            #     if temp_category_word:
-            #         for w in temp_category_word:
-            #             w = re.split(pattern, w)
-            #             for word in w:
-            #                 word = preprocess(word)
-            #                 # print(word)
-            #                 if word:
-            #                     if len(word) <= 2 :
-            #                             continue
-            #                     if word not in stop_words_dict :
-            #                         if word not in self.category_words:
-            #                             self.category_words[word] = 1
-            #                         else:
-            #                             self.category_words[word] += 1
-            # except :
-            #     pass
-            # print(body_text)  
-            # processInfo(body_text)
-
-            
-
-
             # body_text = body_text.lower()
             # body_text = re.split(pattern, body_text)
             # for word in body_text:
@@ -453,8 +422,6 @@ class WikiHandler(xml.sax.ContentHandler):
         if(tag=="text"):
             self.body_stat=0
             # store_body_index(self.body_words, self.page_count)
-            # store_category_index(self.category_words, self.page_count)
-            # store_info_box_index(self.info_box_words, self.page_count)
             external_link_process(self.ext_link_cont, self.page_count)
             processContent(self.ext_link_cont, self.page_count)
             self.ext_link_cont = ""   
@@ -494,6 +461,7 @@ def main():
 
     # writing Info-Box index to file
     info_box_loc_write(WikiHandler.title_file_count)
+    references_loc_write(WikiHandler.title_file_count)
 
     # Writing External Link Index in File
     ext_link_loc_write(WikiHandler.title_file_count)
