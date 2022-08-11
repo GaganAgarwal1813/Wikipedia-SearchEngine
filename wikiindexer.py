@@ -11,10 +11,6 @@ import re
 stemmer = nltk.stem.SnowballStemmer('english')
 stop_words_dict= defaultdict(int)
 pattern = re.compile("[^a-zA-Z0-9]")
-# RE to remove urls
-regExp1 = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.DOTALL)
-# RE to remove tags & css
-regExp2 = re.compile(r'{\|(.*?)\|}',re.DOTALL)
 title_pos = list() # Which title is present at which location in the file
 title_index = defaultdict(list)
 # body_index = defaultdict(list)
@@ -107,7 +103,6 @@ def category_word_loc_write(file_count):
         outfile.write(str(index))
         fptr = fptr + len(index)
     outfile.close()
-    # print(word_position)
 
 def info_box_loc_write(file_count):
     global info_box_index, word_position
