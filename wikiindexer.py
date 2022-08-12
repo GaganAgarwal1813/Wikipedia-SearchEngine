@@ -13,22 +13,24 @@ stop_words_dict= defaultdict(int)
 pattern = re.compile("[^a-zA-Z0-9]")
 title_pos = list() # Which title is present at which location in the file
 title_index = defaultdict(list)
-# body_index = defaultdict(list)
+body_index = defaultdict(list)
 category_index = defaultdict(list)
 info_box_index = defaultdict(list)
 ext_links_index = defaultdict(list)
 references_index = defaultdict(list)
 word_position = dict()
+# body_words = defaultdict(int)
+body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
 title_tags = open("temp/title0"+".txt", "w+")
 
 
-# def preprocess(word):
-#     global stemmer
-#     word = word.strip()
-#     word = word.lower()
+def preprocess_word(word):
+    global stemmer
+    word = word.strip()
+    word = word.lower()
     
-#     word = stemmer.stem(word)
-#     return word
+    # word = stemmer.stem(word)
+    return word
 
 
 def build_stopWordsDict():                               # Building Stop Words Dictionary
@@ -69,22 +71,22 @@ def title_word_loc_write(file_count):
     outfile.close()
     
     
-# def body_word_loc_write(file_count):
-#     global body_index, word_position
+def body_word_loc_write(file_count):
+    global body_index, word_position
     
-#     fptr=0
-#     file = "temp/bword_idx"+str(file_count)+".txt"
-#     outfile = open(file, "w+")
-#     for word in body_index:
-#         index = ",".join(body_index[word])+"\n"
-#         outfile.write(index)
-#         if word in word_position :
-#             word_position[word]['b']=fptr
-#         else:
-#             word_position[word] = {}
-#             word_position[word]['b']=fptr
-#         fptr = fptr + len(index)
-#     outfile.close()
+    fptr=0
+    file = "temp/bword_idx"+str(file_count)+".txt"
+    outfile = open(file, "w+")
+    for word in body_index:
+        index = ",".join(body_index[word])+"\n"
+        outfile.write(index)
+        if word in word_position :
+            word_position[word]['b']=fptr
+        else:
+            word_position[word] = {}
+            word_position[word]['b']=fptr
+        fptr = fptr + len(index)
+    outfile.close()
 
 
 def category_word_loc_write(file_count):
@@ -161,12 +163,12 @@ def store_title_index(title_tag_words, page_count):
         s = index + ":" + str(title_tag_words[word])
         title_index[word].append(s)
 
-# def store_body_index(body_tag_words, page_count):
-#     global body_index
-#     index = str(page_count)
-#     for word in body_tag_words :
-#         s = index + ":" + str(body_tag_words[word])
-#         body_index[word].append(s)
+def store_body_index(body_tag_words, page_count):
+    global body_index
+    index = str(page_count)
+    for word in body_tag_words :
+        s = index + ":" + str(body_tag_words[word])
+        body_index[word].append(s)
 
 
 
@@ -351,6 +353,7 @@ class WikiHandler(xml.sax.ContentHandler):
         self.category_words = dict() # For Storing the Category Words
         self.body_stat = 0
         self.ext_link_cont = ""
+        self.body_words = dict() # For Storing the Body Words
 
     
     def startElement(self,tag,attr):
@@ -366,10 +369,11 @@ class WikiHandler(xml.sax.ContentHandler):
             self.title_tag_words = dict() # Making the Title tag dictionary as empty for every page
         if(tag == "text"):
             self.body_stat = 1
+            self.body_words = dict()
         
 
     def characters(self, content):
-        global pattern, regExp1, regExp2, title_pos
+        global pattern, title_pos
         if(self.title == 1):
             self.title_data += content
             # Adding title content to the dictionary
@@ -377,26 +381,27 @@ class WikiHandler(xml.sax.ContentHandler):
         if(self.body_stat == 1):
             self.ext_link_cont += content
             global stemmer
-            # body_text = content
-            # body_text = regExp1.sub('',body_text)
+            body_text = content
+            body_text = body_regex.sub('',body_text)
             # body_text = regExp2.sub('',body_text)
     
-            # body_text = body_text.lower()
+            body_text = body_text.lower()
+            body_text = preprocess_word(body_text)
             # body_text = re.split(pattern, body_text)
-            # for word in body_text:
-            #     if word:
-                    
-            #         word = stemmer.stem(word)
-            #         if word not in stop_words_dict and len(word)>2:
-            #             if word not in self.body_words:
-            #                 self.body_words[word] = 1
-            #             else:
-            #                 self.body_words[word] += 1
+            for word in body_text:
+                if word:
+                    # word = stemmer.stem(word)
+                    if word not in stop_words_dict and len(word)>2:
+                        if word not in self.body_words:
+                            self.body_words[word] = 1
+                        else:
+                            self.body_words[word] += 1
            
     def endElement(self, tag):
         if(tag=="page"):
             self.page_stat=0
-            self.title_count+=1         
+            self.title_count+=1   
+            # print("Page Count: ", self.page_count)      
         if(tag=="id"):
             self.title_id_stat=0
         if(tag == "title"):
@@ -416,11 +421,12 @@ class WikiHandler(xml.sax.ContentHandler):
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
             self.body_stat=0
-            # store_body_index(self.body_words, self.page_count)
+            store_body_index(self.body_words, self.page_count)
             external_link_process(self.ext_link_cont, self.page_count)
             processContent(self.ext_link_cont, self.page_count)
             self.ext_link_cont = ""   
             # WikiHandler.Index_Create_Fun(self)
+        
 
 
 
@@ -449,7 +455,7 @@ def main():
     title_pos_pickle_write()
     # Writing Body Index to File
 
-    # body_word_loc_write(WikiHandler.title_file_count)
+    body_word_loc_write(WikiHandler.title_file_count)
 
     # Writing Category Index to File
     category_word_loc_write(WikiHandler.title_file_count)
