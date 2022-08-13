@@ -5,7 +5,6 @@ from collections import defaultdict
 import pickle
 import re 
 import sys
-import string
 
 dump_path = ""
 index_path = ""
@@ -27,7 +26,6 @@ title_tags = open(index_path + "/title0"+".txt", "w+")
 def preprocess_word(word):
     word = word.strip()
     word = word.lower()
-    # print(word)
     return word
 
 
@@ -436,7 +434,6 @@ def main():
     index_path = sys.argv[2]
 
 
-    # fp=open(index_path + "/title_offset.tsv","w")
     par=xml.sax.make_parser()
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
