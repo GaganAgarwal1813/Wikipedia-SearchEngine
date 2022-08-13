@@ -1,13 +1,11 @@
-from ast import dump
-import sys
 import timeit
 import xml.sax
 import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
 from collections import defaultdict
 import pickle
 import re 
+import sys
+import string
 
 dump_path = ""
 index_path = ""
@@ -27,9 +25,9 @@ title_tags = open(index_path + "/title0"+".txt", "w+")
 
 
 def preprocess_word(word):
-    global stemmer
     word = word.strip()
     word = word.lower()
+    # print(word)
     return word
 
 
@@ -225,7 +223,7 @@ def external_link_process(ext_link_cont, page_count):
     for word in links:
         if word:
             word = word.lower()
-            if word not in stop_words_dict and len(word)>2 and len(word)<15:
+            if word not in stop_words_dict and len(word)>2 and len(word)<12:
                 if word not in external_link_words:
                     external_link_words[word] = 1
                 else:
@@ -237,8 +235,9 @@ def tokenizeInfo(text):
     global stemmer
     text = re.split(r'[^A-Za-z0-9]+', text)
     tokens = []
-    for line in text:
-        word = stemmer.stem(line)
+    for word in text:
+        # word = stemmer.stem(word)
+        # print(word)
         if len(word) > 2 and len(word) < 10 and word not in stop_words_dict:
             tokens.append(word)
     return tokens
@@ -380,12 +379,12 @@ class WikiHandler(xml.sax.ContentHandler):
             body_text = content
             body_text = body_regex.sub('',body_text)
     
-            body_text = body_text.lower()
+            # body_text = body_text.lower()
             body_text = preprocess_word(body_text)
             body_text = re.split(pattern, body_text)
             for word in body_text:
                 if word:
-                    if word not in stop_words_dict and len(word)>2 and len(word) < 15:
+                    if word not in stop_words_dict and len(word)>2 and len(word) < 12:
                         if word not in self.body_words:
                             self.body_words[word] = 1
                         else:
@@ -425,19 +424,19 @@ class WikiHandler(xml.sax.ContentHandler):
         
 def dump_data_pickel():
     global word_position, index_path
-    file = open(index_path + "wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
+    file = open(index_path + "/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
     pickle.dump(word_position, file)
     file.close()         
 
 
 def main():
-    global fp, title_index, body_index, dump_path, index_path
+    global title_index, body_index, dump_path, index_path
 
     dump_path = sys.argv[1]
     index_path = sys.argv[2]
 
 
-    fp=open(index_path + "/title_offset.tsv","w")
+    # fp=open(index_path + "/title_offset.tsv","w")
     par=xml.sax.make_parser()
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
