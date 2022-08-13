@@ -1,3 +1,5 @@
+from ast import dump
+import sys
 import timeit
 import xml.sax
 import nltk
@@ -7,7 +9,8 @@ from collections import defaultdict
 import pickle
 import re 
 
-
+dump_path = ""
+index_path = ""
 stemmer = nltk.stem.SnowballStemmer('english')
 stop_words_dict= defaultdict(int)
 pattern = re.compile("[^a-zA-Z0-9]")
@@ -19,9 +22,8 @@ info_box_index = defaultdict(list)
 ext_links_index = defaultdict(list)
 references_index = defaultdict(list)
 word_position = dict()
-# body_words = defaultdict(int)
 body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
-title_tags = open("temp/title0"+".txt", "w+")
+title_tags = open(index_path + "/title0"+".txt", "w+")
 
 
 def preprocess_word(word):
@@ -46,16 +48,16 @@ def titleWrite(file_count, title_text):
 
 
 def title_pos_pickle_write():
-    global title_pos
-    file = open("temp/title_pos.pickle", "wb+")
+    global title_pos, index_path
+    file = open(index_path + "/title_pos.pickle", "wb+")
     pickle.dump(title_pos, file)
     file.close()
 
 def title_word_loc_write(file_count):
-    global title_index
+    global title_index, index_path
     global word_position
     fptr=0
-    file = "temp/tword_idx"+str(file_count)+".txt"
+    file = index_path + "/tword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in title_index:
         index = ",".join(title_index[word])+"\n"
@@ -70,10 +72,10 @@ def title_word_loc_write(file_count):
     
     
 def body_word_loc_write(file_count):
-    global body_index, word_position
+    global body_index, word_position, index_path
     
     fptr=0
-    file = "temp/bword_idx"+str(file_count)+".txt"
+    file = index_path + "/bword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in body_index:
         index = ",".join(body_index[word])+"\n"
@@ -88,9 +90,9 @@ def body_word_loc_write(file_count):
 
 
 def category_word_loc_write(file_count):
-    global category_index, word_position
+    global category_index, word_position, index_path
     fptr=0
-    file = "temp/cword_idx"+str(file_count)+".txt"
+    file = index_path + "/cword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in category_index:
         index = ",".join(category_index[word])+"\n"
@@ -104,9 +106,9 @@ def category_word_loc_write(file_count):
     outfile.close()
 
 def info_box_loc_write(file_count):
-    global info_box_index, word_position
+    global info_box_index, word_position, index_path
     fptr=0
-    file = "temp/info_box_idx"+str(file_count)+".txt"
+    file = index_path + "/info_box_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in info_box_index:
         index = ",".join(info_box_index[word])+"\n"
@@ -120,9 +122,9 @@ def info_box_loc_write(file_count):
     outfile.close()
 
 def references_loc_write(file_count):
-    global references_index, word_position
+    global references_index, word_position, index_path
     fptr = 0
-    file = "temp/references_idx"+str(file_count)+".txt"
+    file = index_path + "/references_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in references_index:
         index = ",".join(references_index[word])+"\n"
@@ -137,9 +139,9 @@ def references_loc_write(file_count):
     outfile.close()
 
 def ext_link_loc_write(file_count):
-    global ext_links_index, word_position
+    global ext_links_index, word_position, index_path
     fptr = 0
-    file = "temp/ext_link_idx"+str(file_count)+".txt"
+    file = index_path + "/ext_link_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in ext_links_index:
         index = ",".join(ext_links_index[word])+"\n"
@@ -422,22 +424,25 @@ class WikiHandler(xml.sax.ContentHandler):
 
         
 def dump_data_pickel():
-    global word_position
-    file = open("temp/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
+    global word_position, index_path
+    file = open(index_path + "wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
     pickle.dump(word_position, file)
     file.close()         
 
 
 def main():
-    global fp, title_index, body_index
+    global fp, title_index, body_index, dump_path, index_path
 
-    fp=open("temp/title_offset.tsv","w")
+    dump_path = sys.argv[1]
+    index_path = sys.argv[2]
+
+
+    fp=open(index_path + "/title_offset.tsv","w")
     par=xml.sax.make_parser()
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
-    par.parse('data.xml')
-    # Parsing Done
+    par.parse(dump_path)
     # Writing Titles to File
     
     title_word_loc_write(WikiHandler.title_file_count)

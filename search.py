@@ -15,7 +15,6 @@ def title_test(query):
     field = 't'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
-    # print(title_tags)
     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
     title_idx = open("temp/tword_idx0.txt", "r")
     if query in word_position and field in word_position[query]:
@@ -99,7 +98,6 @@ def info_search(query):
 
 
 def ext_search(query):
-    # print(query)
     field = 'e'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
@@ -124,7 +122,6 @@ def ext_search(query):
 
 
 def info(query):
-    # print(query)
     global stemmer
     query = stemmer.stem(query)
     field = 'i'
@@ -150,7 +147,6 @@ def info(query):
         # print(s)
 
 def references(query):
-    # print(query)
     global stemmer
     query = stemmer.stem(query)
     field = 'r'
@@ -177,8 +173,6 @@ def references(query):
 
 def body(query):
     # print(query)
-    # global stemmer
-    # query = stemmer.stem(query)
     field = 'b'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
@@ -209,7 +203,7 @@ def main():
     # ext_search(query)
     # info(query)
     # references(query)
-    body(query)
+    # body(query)
 
 if __name__ == "__main__":
     main()
