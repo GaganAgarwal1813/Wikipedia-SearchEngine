@@ -1,8 +1,8 @@
 import timeit
 import xml.sax
 import nltk
-# nltk.download('punkt')
-# nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('stopwords')
 from collections import defaultdict
 import pickle
 import re 
@@ -164,11 +164,13 @@ def store_title_index(title_tag_words, page_count):
         title_index[word].append(s)
 
 def store_body_index(body_tag_words, page_count):
+    # print("fdfdfdfd", body_tag_words)
     global body_index
     index = str(page_count)
     for word in body_tag_words :
         s = index + ":" + str(body_tag_words[word])
         body_index[word].append(s)
+    # print(body_index)
 
 
 
@@ -228,7 +230,7 @@ def external_link_process(ext_link_cont, page_count):
     for word in links:
         if word:
             word = word.lower()
-            if word not in stop_words_dict and len(word)>2:
+            if word not in stop_words_dict and len(word)>2 and len(word)<15:
                 if word not in external_link_words:
                     external_link_words[word] = 1
                 else:
@@ -387,15 +389,18 @@ class WikiHandler(xml.sax.ContentHandler):
     
             body_text = body_text.lower()
             body_text = preprocess_word(body_text)
-            # body_text = re.split(pattern, body_text)
+            # print("dss ",body_text)
+            body_text = re.split(pattern, body_text)
             for word in body_text:
                 if word:
                     # word = stemmer.stem(word)
-                    if word not in stop_words_dict and len(word)>2:
+                    # print(word)
+                    if word not in stop_words_dict and len(word)>2 and len(word) < 15:
                         if word not in self.body_words:
                             self.body_words[word] = 1
                         else:
                             self.body_words[word] += 1
+            # store_body_index(self.body_words, self.page_count)
            
     def endElement(self, tag):
         if(tag=="page"):
