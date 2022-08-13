@@ -28,8 +28,6 @@ def preprocess_word(word):
     global stemmer
     word = word.strip()
     word = word.lower()
-    
-    # word = stemmer.stem(word)
     return word
 
 
@@ -96,7 +94,6 @@ def category_word_loc_write(file_count):
     outfile = open(file, "w+")
     for word in category_index:
         index = ",".join(category_index[word])+"\n"
-        # print(index)
         if word in word_position :
             word_position[word]['c']=fptr
         else:
@@ -113,7 +110,6 @@ def info_box_loc_write(file_count):
     outfile = open(file, "w+")
     for word in info_box_index:
         index = ",".join(info_box_index[word])+"\n"
-        # print("word", word)
         if word in word_position :
             word_position[word]['i']=fptr
         else:
@@ -164,13 +160,11 @@ def store_title_index(title_tag_words, page_count):
         title_index[word].append(s)
 
 def store_body_index(body_tag_words, page_count):
-    # print("fdfdfdfd", body_tag_words)
     global body_index
     index = str(page_count)
     for word in body_tag_words :
         s = index + ":" + str(body_tag_words[word])
         body_index[word].append(s)
-    # print(body_index)
 
 
 
@@ -189,7 +183,6 @@ def store_references(references_words, page_count):
         references_index[word].append(s)
 
 def store_info_box_index(info_box_words, page_count):
-    # print(info_box_words)
     global info_box_index
     index = str(page_count)
     for word in info_box_words :
@@ -285,7 +278,6 @@ def processInfo(text, page_count):
             info_box_words[i] = 1
     
     store_info_box_index(info_box_words, page_count)
-    # print(d)
 
 def refandextType(name):
 	l = []
@@ -385,28 +377,22 @@ class WikiHandler(xml.sax.ContentHandler):
             global stemmer
             body_text = content
             body_text = body_regex.sub('',body_text)
-            # body_text = regExp2.sub('',body_text)
     
             body_text = body_text.lower()
             body_text = preprocess_word(body_text)
-            # print("dss ",body_text)
             body_text = re.split(pattern, body_text)
             for word in body_text:
                 if word:
-                    # word = stemmer.stem(word)
-                    # print(word)
                     if word not in stop_words_dict and len(word)>2 and len(word) < 15:
                         if word not in self.body_words:
                             self.body_words[word] = 1
                         else:
                             self.body_words[word] += 1
-            # store_body_index(self.body_words, self.page_count)
            
     def endElement(self, tag):
         if(tag=="page"):
             self.page_stat=0
             self.title_count+=1   
-            # print("Page Count: ", self.page_count)      
         if(tag=="id"):
             self.title_id_stat=0
         if(tag == "title"):
@@ -430,7 +416,6 @@ class WikiHandler(xml.sax.ContentHandler):
             external_link_process(self.ext_link_cont, self.page_count)
             processContent(self.ext_link_cont, self.page_count)
             self.ext_link_cont = ""   
-            # WikiHandler.Index_Create_Fun(self)
         
 
 
