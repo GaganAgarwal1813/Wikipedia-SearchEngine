@@ -9,7 +9,6 @@ import sys
 
 dump_path = ""
 index_path = ""
-# stemmer = nltk.stem.SnowballStemmer('english')
 stemmer = Stemmer('porter')
 stop_words_dict= defaultdict(int)
 pattern = re.compile("[^a-zA-Z0-9]")
@@ -266,22 +265,42 @@ def extractCategories(text, page_count):
 
 
 def processInfo(text, page_count):
-    cont = text.split("{{infobox")
-    info = []
-    if len(cont) <= 1:
-        return
-    flag= False
-    for infob in cont:
-        traw = infob.split("\n")
-        if (not flag):
-            flag=True
-        else :
-            for lines in traw:
-                if lines == "}}":
-                    break
-                info += tokenizeInfo(lines)
+    # cont = text.split("{{infobox")
+    # info = []
+    # if len(cont) <= 1:
+    #     return
+    # flag= False
+    # for infob in cont:
+    #     traw = infob.split("\n")
+    #     if (not flag):
+    #         flag=True
+    #     else :
+    #         for lines in traw:
+    #             if lines == "}}":
+    #                 break
+    #             info += tokenizeInfo(lines)
+    pattern = re.compile(r'\{Infobox')
+    info_splits = pattern.split(text)
+    pattern_2 = re.compile(r'\}\}\n(\w|\'|\n)')
+    info_list = []
+    final = []
+    if len(info_splits) > 1:
+        for ele in info_splits[1:]:
+            info_box_data = pattern_2.split(ele)[0]
+            text = text.replace(info_box_data, '')
+            info_list.append(info_box_data)
+        for ele in info_list:
+            for line in ele.split('\n'):
+                if len(line) and line[0] == '|':
+                    value = line.split("=")
+                    if len(value) > 1:
+                        for info_word in value[1:]:
+                            final += str(info_word) + ' '
+                elif len(line):
+                    final.extend(tokenizeInfo(line))
+                    # final += line + ' '
     info_box_words = {}
-    for i in info:
+    for i in final:
         if i in info_box_words:
             info_box_words[i] = info_box_words[i]+1
         else:
@@ -443,6 +462,7 @@ class WikiHandler(xml.sax.ContentHandler):
             token_count += len(body_text)
 
             for word in body_text:
+                word = stemmer.stemWord(word)
                 if word:
                     if word not in stop_words_dict and len(word)>2 and len(word) < 15:
                         if word not in self.body_words:
@@ -457,7 +477,7 @@ class WikiHandler(xml.sax.ContentHandler):
             self.ext_link_cont = ""  
             external_link_words = dict() 
             category_tag_words = dict()
-
+            # print(self.page_count)
             # dummy = self.page_count % 10000
             # if(dummy == 0):
             #     print(self.page_count," ",)
