@@ -1,103 +1,110 @@
 from dataclasses import field
 import sys
 import pickle
-import nltk
+# import nltk
+from Stemmer import Stemmer
 
-stemmer = nltk.stem.SnowballStemmer('english')
+stemmer = Stemmer('porter')
 def preprocess(word):
     word = word.strip()
     word = word.lower()
-    stemmer = nltk.stem.SnowballStemmer('english')
-    word = stemmer.stem(word)
+    word = stemmer.stemWord(word)
     return word
 
-def title_test(query):
+def title_test(query1):
+    query1 = preprocess(query1)
     field = 't'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
     title_idx = open("temp/tword_idx0.txt", "r")
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['t']
-        title_idx.seek(position)
-        s = title_idx.readline()
-        # print(s)
-        s = s.split(',')
-        for ele in s:
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
-        # print(s)
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['t']
+            title_idx.seek(position)
+            s = title_idx.readline()
+            # print(s)
+            s = s.split(',')
+            for ele in s:
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    print(title_file.readline())
+            # print(s)
 
 
-def body_test(query):
-    query =preprocess(query)
-    field = 'b'
-    title_file = open("temp/title0.txt", "r")
-    title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
-    word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
-    body_idx = open("temp/bword_idx0.txt", "r")
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['b']
-        body_idx.seek(position)
-        s = body_idx.readline()
-        s = s.split(',')
-        for ele in s:
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
+# def body_test(query):
+#     query =preprocess(query)
+#     field = 'b'
+#     title_file = open("temp/title0.txt", "r")
+#     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
+#     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
+#     body_idx = open("temp/bword_idx0.txt", "r")
+#     if query in word_position and field in word_position[query]:
+#         position = word_position[query]['b']
+#         body_idx.seek(position)
+#         s = body_idx.readline()
+#         s = s.split(',')
+#         for ele in s:
+#             if ele:
+#                 ele = ele.split(':')
+#                 title_file.seek(title_tags[int(ele[0])-1])
+#                 print(title_file.readline())
        
 
-def category_search(query):
-    query =preprocess(query)
+def category_search(query1):
+    query1 =preprocess(query1)
     field = 'c'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
     
     body_idx = open("temp/cword_idx0.txt", "r")
-   
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['c']
-       
-        body_idx.seek(position)
-        s = body_idx.readline()
+    
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['c']
         
-        s = s.split(',')
-        for ele in s:
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
-        # print(s)
+            body_idx.seek(position)
+            s = body_idx.readline()
+            
+            s = s.split(',')
+            for ele in s:
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    print(title_file.readline())
+            # print(s)
 
-def info_search(query):
-    query =preprocess(query)
+def info_search(query1):
+    query1 =preprocess(query1)
     field = 'i'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
     
     body_idx = open("temp/info_box_idx0.txt", "r")
-   
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['i']
-       
-        body_idx.seek(position)
-        s = body_idx.readline()
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['i']
         
-        s = s.split(',')
-        for ele in s:
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                # print(title_file.readline())
-        # print(s)
+            body_idx.seek(position)
+            s = body_idx.readline()
+            
+            s = s.split(',')
+            for ele in s:
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    # print(title_file.readline())
+            # print(s)
 
 
-def ext_search(query):
+def ext_search(query1):
+    query1 = preprocess(query1)
     field = 'e'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
@@ -105,25 +112,26 @@ def ext_search(query):
     
     body_idx = open("temp/ext_link_idx0.txt", "r")
    
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['e']
-       
-        body_idx.seek(position)
-        s = body_idx.readline()
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['e']
         
-        s = s.split(',')
-        for ele in s:
-            # print(ele)
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
-        # print(s)
+            body_idx.seek(position)
+            s = body_idx.readline()
+            
+            s = s.split(',')
+            for ele in s:
+                # print(ele)
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    print(title_file.readline())
+            # print(s)
 
 
-def info(query):
-    global stemmer
-    query = stemmer.stem(query)
+def info(query1):
+    query1 = preprocess(query1)
     field = 'i'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
@@ -131,69 +139,75 @@ def info(query):
     
     body_idx = open("temp/info_box_idx0.txt", "r")
    
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['i']
-       
-        body_idx.seek(position)
-        s = body_idx.readline()
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['i']
         
-        s = s.split(',')
-        for ele in s:
-            # print(ele)
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
-        # print(s)
+            body_idx.seek(position)
+            s = body_idx.readline()
+            
+            s = s.split(',')
+            for ele in s:
+                # print(ele)
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    print(title_file.readline())
+            # print(s)
 
-def references(query):
-    global stemmer
-    query = stemmer.stem(query)
+def references(query1):
+    query1 = preprocess(query1)
     field = 'r'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
     
     body_idx = open("temp/references_idx0.txt", "r")
-   
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['r']
-       
-        body_idx.seek(position)
-        s = body_idx.readline()
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['r']
         
-        s = s.split(',')
-        for ele in s:
-            # print(ele)
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
-        # print(s)
+            body_idx.seek(position)
+            s = body_idx.readline()
+            
+            s = s.split(',')
+            for ele in s:
+                # print(ele)
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    print(title_file.readline())
+            # print(s)
 
-def body(query):
+def body(query1):
     # print(query)
+    query1 = preprocess(query1)
     field = 'b'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
     
     body_idx = open("temp/bword_idx0.txt", "r")
-   
-    if query in word_position and field in word_position[query]:
-        position = word_position[query]['b']
-       
-        body_idx.seek(position)
-        s = body_idx.readline()
-        
-        s = s.split(',')
-        for ele in s:
-            # print(ele)
-            if ele:
-                ele = ele.split(':')
-                title_file.seek(title_tags[int(ele[0])-1])
-                print(title_file.readline())
-        # print(s)
+    
+    # print(query1)
+    query1 = query1.split(' ')
+    for query in query1:
+        if query in word_position and field in word_position[query]:
+            position = word_position[query]['b']
+            
+            body_idx.seek(position)
+            s = body_idx.readline()
+            
+            s = s.split(',')
+            for ele in s:
+                # print(ele)
+                if ele:
+                    ele = ele.split(':')
+                    title_file.seek(title_tags[int(ele[0])-1])
+                    print(title_file.readline())
+            # print(s)
 
 def main():
     query = sys.argv[1]
@@ -203,7 +217,7 @@ def main():
     # ext_search(query)
     # info(query)
     # references(query)
-    # body(query)
+    body(query)
 
 if __name__ == "__main__":
     main()
