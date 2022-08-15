@@ -1,6 +1,7 @@
 import timeit
 import xml.sax
 import nltk
+from Stemmer import Stemmer
 from collections import defaultdict
 import pickle
 import re 
@@ -8,7 +9,8 @@ import sys
 
 dump_path = ""
 index_path = ""
-stemmer = nltk.stem.SnowballStemmer('english')
+# stemmer = nltk.stem.SnowballStemmer('english')
+stemmer = Stemmer('porter')
 stop_words_dict= defaultdict(int)
 pattern = re.compile("[^a-zA-Z0-9]")
 title_pos = list() # Which title is present at which location in the file
@@ -27,11 +29,9 @@ title_tags = open(index_path + "/title0"+".txt", "w+")
 token_count = 0
 
 def preprocess_word(word):
-    word = word[:len(word)//2]
-    word = word.lower()
+    word = word[:int(len(word)*0.6)]
+    # word = word.lower()
     word = word.strip()
-    
-    
     return word
 
 
@@ -226,12 +226,12 @@ def external_link_process(ext_link_cont, page_count):
     links = ''.join(ch if ch.isalnum() else ' ' for ch in links)
     links = links.split()
 
-    # token_count += len(links)
+    token_count += len(links)
 
     for word in links:
         if word:
             word = word.lower()
-            if word not in stop_words_dict and len(word)>2 and len(word)<12:
+            if word not in stop_words_dict and len(word)>2 and len(word)<15:
                 if word not in external_link_words:
                     external_link_words[word] = 1
                 else:
@@ -245,9 +245,9 @@ def tokenizeInfo(text):
     token_count += len(text)
     tokens = []
     for word in text:
-        word = stemmer.stem(word)
+        word = stemmer.stemWord(word)
         # print(word)
-        if len(word) > 2 and len(word) < 10 and word not in stop_words_dict:
+        if len(word) > 2 and len(word) < 15 and word not in stop_words_dict:
             tokens.append(word)
     return tokens
 
@@ -384,8 +384,8 @@ class WikiHandler(xml.sax.ContentHandler):
             
         if(self.body_stat == 1):
             self.ext_link_cont += content
-            global stemmer
-            body_text = content
+            # global stemmer
+            # body_text = content
             # body_text = body_regex.sub('',body_text)
         
             # # body_text = body_text.lower()
@@ -434,9 +434,9 @@ class WikiHandler(xml.sax.ContentHandler):
             # store_body_index(self.body_words, self.page_count)
 
             body_text = self.ext_link_cont
-            body_text = body_regex.sub('',body_text)
+            body_text = body_regex.sub('==[A-Za-z]+==\n(.*)\n',body_text)
         
-            # body_text = body_text.lower()
+            body_text = body_text.lower()
             body_text = preprocess_word(body_text)
             body_text = re.split(pattern, body_text)
 
@@ -444,7 +444,7 @@ class WikiHandler(xml.sax.ContentHandler):
 
             for word in body_text:
                 if word:
-                    if word not in stop_words_dict and len(word)>2 and len(word) < 12:
+                    if word not in stop_words_dict and len(word)>2 and len(word) < 15:
                         if word not in self.body_words:
                             self.body_words[word] = 1
                         else:
@@ -457,6 +457,10 @@ class WikiHandler(xml.sax.ContentHandler):
             self.ext_link_cont = ""  
             external_link_words = dict() 
             category_tag_words = dict()
+
+            # dummy = self.page_count % 10000
+            # if(dummy == 0):
+            #     print(self.page_count," ",)
         
 
 
