@@ -242,10 +242,10 @@ def external_link_process(ext_link_cont, page_count):
 def tokenizeInfo(text):
     global stemmer, token_count
     text = re.split(r'[^A-Za-z0-9]+', text)
-    # token_count += len(text)
+    token_count += len(text)
     tokens = []
     for word in text:
-        # word = stemmer.stem(word)
+        word = stemmer.stem(word)
         # print(word)
         if len(word) > 2 and len(word) < 10 and word not in stop_words_dict:
             tokens.append(word)
@@ -386,21 +386,21 @@ class WikiHandler(xml.sax.ContentHandler):
             self.ext_link_cont += content
             global stemmer
             body_text = content
-            body_text = body_regex.sub('',body_text)
+            # body_text = body_regex.sub('',body_text)
         
-            # body_text = body_text.lower()
-            body_text = preprocess_word(body_text)
-            body_text = re.split(pattern, body_text)
+            # # body_text = body_text.lower()
+            # body_text = preprocess_word(body_text)
+            # body_text = re.split(pattern, body_text)
 
-            token_count += len(body_text)
+            # token_count += len(body_text)
 
-            for word in body_text:
-                if word:
-                    if word not in stop_words_dict and len(word)>2 and len(word) < 12:
-                        if word not in self.body_words:
-                            self.body_words[word] = 1
-                        else:
-                            self.body_words[word] += 1
+            # for word in body_text:
+            #     if word:
+            #         if word not in stop_words_dict and len(word)>2 and len(word) < 12:
+            #             if word not in self.body_words:
+            #                 self.body_words[word] = 1
+            #             else:
+            #                 self.body_words[word] += 1
            
     def endElement(self, tag):
         global external_link_words, category_tag_words, token_count
@@ -431,7 +431,29 @@ class WikiHandler(xml.sax.ContentHandler):
             self.body_stat=0
             external_link_process(self.ext_link_cont, self.page_count)
             processContent(self.ext_link_cont, self.page_count)
+            # store_body_index(self.body_words, self.page_count)
+
+            body_text = self.ext_link_cont
+            body_text = body_regex.sub('',body_text)
+        
+            # body_text = body_text.lower()
+            body_text = preprocess_word(body_text)
+            body_text = re.split(pattern, body_text)
+
+            token_count += len(body_text)
+
+            for word in body_text:
+                if word:
+                    if word not in stop_words_dict and len(word)>2 and len(word) < 12:
+                        if word not in self.body_words:
+                            self.body_words[word] = 1
+                        else:
+                            self.body_words[word] += 1
+
+
+            
             store_body_index(self.body_words, self.page_count)
+
             self.ext_link_cont = ""  
             external_link_words = dict() 
             category_tag_words = dict()
