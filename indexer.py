@@ -29,7 +29,6 @@ token_count = 0
 
 def preprocess_word(word):
     word = word[:int(len(word)*0.6)]
-    # word = word.lower()
     word = word.strip()
     return word
 
@@ -230,7 +229,7 @@ def external_link_process(ext_link_cont, page_count):
     for word in links:
         if word:
             word = word.lower()
-            if word not in stop_words_dict and len(word)>2 and len(word)<15:
+            if word not in stop_words_dict and len(word)>2 and len(word)<13:
                 if word not in external_link_words:
                     external_link_words[word] = 1
                 else:
@@ -245,8 +244,7 @@ def tokenizeInfo(text):
     tokens = []
     for word in text:
         word = stemmer.stemWord(word)
-        # print(word)
-        if len(word) > 2 and len(word) < 15 and word not in stop_words_dict:
+        if len(word) > 2 and len(word) < 13 and word not in stop_words_dict:
             tokens.append(word)
     return tokens
 
@@ -265,42 +263,22 @@ def extractCategories(text, page_count):
 
 
 def processInfo(text, page_count):
-    # cont = text.split("{{infobox")
-    # info = []
-    # if len(cont) <= 1:
-    #     return
-    # flag= False
-    # for infob in cont:
-    #     traw = infob.split("\n")
-    #     if (not flag):
-    #         flag=True
-    #     else :
-    #         for lines in traw:
-    #             if lines == "}}":
-    #                 break
-    #             info += tokenizeInfo(lines)
-    pattern = re.compile(r'\{Infobox')
-    info_splits = pattern.split(text)
-    pattern_2 = re.compile(r'\}\}\n(\w|\'|\n)')
-    info_list = []
-    final = []
-    if len(info_splits) > 1:
-        for ele in info_splits[1:]:
-            info_box_data = pattern_2.split(ele)[0]
-            text = text.replace(info_box_data, '')
-            info_list.append(info_box_data)
-        for ele in info_list:
-            for line in ele.split('\n'):
-                if len(line) and line[0] == '|':
-                    value = line.split("=")
-                    if len(value) > 1:
-                        for info_word in value[1:]:
-                            final += str(info_word) + ' '
-                elif len(line):
-                    final.extend(tokenizeInfo(line))
-                    # final += line + ' '
+    cont = text.split("{{infobox")
+    info = []
+    if len(cont) <= 1:
+        return
+    flag= False
+    for infob in cont:
+        traw = infob.split("\n")
+        if (not flag):
+            flag=True
+        else :
+            for lines in traw:
+                if lines == "}}":
+                    break
+                info += tokenizeInfo(lines)
     info_box_words = {}
-    for i in final:
+    for i in info:
         if i in info_box_words:
             info_box_words[i] = info_box_words[i]+1
         else:
@@ -403,23 +381,6 @@ class WikiHandler(xml.sax.ContentHandler):
             
         if(self.body_stat == 1):
             self.ext_link_cont += content
-            # global stemmer
-            # body_text = content
-            # body_text = body_regex.sub('',body_text)
-        
-            # # body_text = body_text.lower()
-            # body_text = preprocess_word(body_text)
-            # body_text = re.split(pattern, body_text)
-
-            # token_count += len(body_text)
-
-            # for word in body_text:
-            #     if word:
-            #         if word not in stop_words_dict and len(word)>2 and len(word) < 12:
-            #             if word not in self.body_words:
-            #                 self.body_words[word] = 1
-            #             else:
-            #                 self.body_words[word] += 1
            
     def endElement(self, tag):
         global external_link_words, category_tag_words, token_count
@@ -450,7 +411,6 @@ class WikiHandler(xml.sax.ContentHandler):
             self.body_stat=0
             external_link_process(self.ext_link_cont, self.page_count)
             processContent(self.ext_link_cont, self.page_count)
-            # store_body_index(self.body_words, self.page_count)
 
             body_text = self.ext_link_cont
             body_text = body_regex.sub('==[A-Za-z]+==\n(.*)\n',body_text)
@@ -464,7 +424,7 @@ class WikiHandler(xml.sax.ContentHandler):
             for word in body_text:
                 word = stemmer.stemWord(word)
                 if word:
-                    if word not in stop_words_dict and len(word)>2 and len(word) < 15:
+                    if word not in stop_words_dict and len(word)>2 and len(word) < 13:
                         if word not in self.body_words:
                             self.body_words[word] = 1
                         else:
@@ -477,18 +437,19 @@ class WikiHandler(xml.sax.ContentHandler):
             self.ext_link_cont = ""  
             external_link_words = dict() 
             category_tag_words = dict()
-            # print(self.page_count)
-            # dummy = self.page_count % 10000
-            # if(dummy == 0):
-            #     print(self.page_count," ",)
         
 
 
 
         
 def dump_data_pickel():
-    global word_position, index_path
-    print("Unique Count", len(word_position))
+    global word_position, index_path, token_count
+    stat_path = sys.argv[3]
+    stat_file_write = open(stat_path, "a")
+    stat_file_write.write("Total Number of Tokens: " + str(token_count) + "\n")
+    stat_file_write.write("Total Number of Unique: " + str(len(word_position)) + "\n")
+    stat_file_write.close()
+    # print("Unique Count", len(word_position))
     file = open(index_path + "/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
     pickle.dump(word_position, file)
     file.close()         
@@ -532,7 +493,7 @@ def main():
 
     dump_data_pickel()
 
-    print("Token Count = ",token_count)
+    # print("Token Count = ",token_count)
     
     
 

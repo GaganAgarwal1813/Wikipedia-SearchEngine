@@ -12,7 +12,8 @@ def preprocess(word):
     return word
 
 def title_test(query1):
-    query1 = preprocess(query1)
+    ans = []
+    # query1 = preprocess(query1)
     field = 't'
     title_file = open("temp/title0.txt", "r")
     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
@@ -30,8 +31,10 @@ def title_test(query1):
                 if ele:
                     ele = ele.split(':')
                     title_file.seek(title_tags[int(ele[0])-1])
-                    print(title_file.readline())
+                    # print(title_file.readline())
+                    ans.append(title_file.readline())
             # print(s)
+    return ans
 
 
 # def body_test(query):
@@ -54,6 +57,7 @@ def title_test(query1):
        
 
 def category_search(query1):
+    ans = []
     query1 =preprocess(query1)
     field = 'c'
     title_file = open("temp/title0.txt", "r")
@@ -75,35 +79,38 @@ def category_search(query1):
                 if ele:
                     ele = ele.split(':')
                     title_file.seek(title_tags[int(ele[0])-1])
-                    print(title_file.readline())
-            # print(s)
-
-def info_search(query1):
-    query1 =preprocess(query1)
-    field = 'i'
-    title_file = open("temp/title0.txt", "r")
-    title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
-    word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
-    
-    body_idx = open("temp/info_box_idx0.txt", "r")
-    query1 = query1.split(' ')
-    for query in query1:
-        if query in word_position and field in word_position[query]:
-            position = word_position[query]['i']
-        
-            body_idx.seek(position)
-            s = body_idx.readline()
-            
-            s = s.split(',')
-            for ele in s:
-                if ele:
-                    ele = ele.split(':')
-                    title_file.seek(title_tags[int(ele[0])-1])
                     # print(title_file.readline())
+                    ans.append(title_file.readline())
             # print(s)
+    return ans
+
+# def info_search(query1):
+#     query1 =preprocess(query1)
+#     field = 'i'
+#     title_file = open("temp/title0.txt", "r")
+#     title_tags = pickle.load(open("temp/title_pos.pickle", "rb"))
+#     word_position = pickle.load(open("temp/wpos0.pickle", "rb"))
+    
+#     body_idx = open("temp/info_box_idx0.txt", "r")
+#     query1 = query1.split(' ')
+#     for query in query1:
+#         if query in word_position and field in word_position[query]:
+#             position = word_position[query]['i']
+        
+#             body_idx.seek(position)
+#             s = body_idx.readline()
+            
+#             s = s.split(',')
+#             for ele in s:
+#                 if ele:
+#                     ele = ele.split(':')
+#                     title_file.seek(title_tags[int(ele[0])-1])
+#                     # print(title_file.readline())
+#             # print(s)
 
 
 def ext_search(query1):
+    ans = []
     query1 = preprocess(query1)
     field = 'e'
     title_file = open("temp/title0.txt", "r")
@@ -126,11 +133,13 @@ def ext_search(query1):
                 if ele:
                     ele = ele.split(':')
                     title_file.seek(title_tags[int(ele[0])-1])
-                    print(title_file.readline())
+                    # print(title_file.readline())
+                    ans.append(title_file.readline())
             # print(s)
-
+    return ans
 
 def info(query1):
+    ans = []
     query1 = preprocess(query1)
     field = 'i'
     title_file = open("temp/title0.txt", "r")
@@ -153,10 +162,13 @@ def info(query1):
                 if ele:
                     ele = ele.split(':')
                     title_file.seek(title_tags[int(ele[0])-1])
-                    print(title_file.readline())
+                    # print(title_file.readline())
+                    ans.append(title_file.readline())
             # print(s)
+    return ans
 
 def references(query1):
+    ans = []
     query1 = preprocess(query1)
     field = 'r'
     title_file = open("temp/title0.txt", "r")
@@ -178,11 +190,14 @@ def references(query1):
                 if ele:
                     ele = ele.split(':')
                     title_file.seek(title_tags[int(ele[0])-1])
-                    print(title_file.readline())
+                    # print(title_file.readline())
+                    ans.append(title_file.readline())
             # print(s)
+    return ans
 
 def body(query1):
     # print(query)
+    ans = []
     query1 = preprocess(query1)
     field = 'b'
     title_file = open("temp/title0.txt", "r")
@@ -206,18 +221,20 @@ def body(query1):
                 if ele:
                     ele = ele.split(':')
                     title_file.seek(title_tags[int(ele[0])-1])
-                    print(title_file.readline())
+                    # print(title_file.readline())
+                    ans.append(title_file.readline())
             # print(s)
+    return ans
 
 def main():
     query = sys.argv[1]
     query = query.lower()
-    # title_test(query)
-    # category_search(query)
-    # ext_search(query)
-    # info(query)
-    # references(query)
-    body(query)
+    print(title_test(query))
+    # print(category_search(query))
+    # print(ext_search(query))
+    # print(info(query))
+    # print(references(query))
+    # print(body(query))
 
 if __name__ == "__main__":
     main()
