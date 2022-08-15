@@ -4,6 +4,8 @@ import pickle
 # import nltk
 from Stemmer import Stemmer
 
+set1 = set()
+
 stemmer = Stemmer('porter')
 def preprocess(word):
     word = word.strip()
@@ -226,15 +228,24 @@ def body(query1):
             # print(s)
     return ans
 
+
+def traverse_res(lis):
+    global set1
+    for val in lis:
+        set1.add(val)
+
 def main():
+    global set1
     query = sys.argv[1]
     query = query.lower()
-    print(title_test(query))
-    # print(category_search(query))
-    # print(ext_search(query))
-    # print(info(query))
-    # print(references(query))
-    # print(body(query))
+    set1 = set()
+    traverse_res(title_test(query))
+    traverse_res(category_search(query))
+    traverse_res(ext_search(query))
+    traverse_res(info(query))
+    traverse_res(references(query))
+    traverse_res(body(query))
+    print(set1)
 
 if __name__ == "__main__":
     main()

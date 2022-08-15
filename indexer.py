@@ -441,6 +441,7 @@ class WikiHandler(xml.sax.ContentHandler):
 
 
 
+
         
 def dump_data_pickel():
     global word_position, index_path, token_count
