@@ -40,6 +40,23 @@ def preprocessWord(word):
         stemWordDict[word] = stemmer.stemWord(word)
     return stemWordDict[word]
 
+def remove_redundant_body(body):
+    # Regex Remove URL
+    regUrl = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.DOTALL)
+    body = regUrl.sub('', body)
+    # Regex Remove HTML Tags CSS
+    regHTML = re.compile(r'{\|(.*?)\|}',re.DOTALL)
+    body = regHTML.sub('', body)
+    # Regular Expression to remove {{cite **}} or {{vcite **}}
+    regcite = re.compile(r'{{v?cite(.*?)}}',re.DOTALL)
+    body = regcite.sub('', body)
+    # Regular Expression to remove [[file:]]
+    regfile = re.compile(r'\[\[file:(.*?)\]\]',re.DOTALL)
+    body = regfile.sub('', body)
+    return body
+
+
+
 
 def preprocess_word(word):
     word = word[:int(len(word)*0.6)]
