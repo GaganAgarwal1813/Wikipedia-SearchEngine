@@ -26,8 +26,20 @@ external_link_words = dict()
 category_tag_words = dict()
 body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
 title_tags = ""
+stemWordDict = dict()
 
 token_count = 0
+
+
+# For Preprocessing word and building a stemmer dictionary
+def preprocessWord(word):
+    global stemWordDict
+    word = word.lower()
+    word = word.strip()
+    if word not in stemWordDict:
+        stemWordDict[word] = stemmer.stemWord(word)
+    return stemWordDict[word]
+
 
 def preprocess_word(word):
     word = word[:int(len(word)*0.6)]
