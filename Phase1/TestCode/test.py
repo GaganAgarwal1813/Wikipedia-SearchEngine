@@ -9,6 +9,7 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk import pos_tag
 
+
 def preProcess(fname):
     file_pointer = open(fname, "r")
     text = file_pointer.read()

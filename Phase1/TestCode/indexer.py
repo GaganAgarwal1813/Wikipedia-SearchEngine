@@ -1,15 +1,14 @@
 import timeit
 import xml.sax
 import nltk
-from Stemmer import Stemmer
+nltk.download('punkt')
+nltk.download('stopwords')
 from collections import defaultdict
 import pickle
 import re 
-import sys
 
-dump_path = ""
-index_path = ""
-stemmer = Stemmer('porter')
+
+stemmer = nltk.stem.SnowballStemmer('english')
 stop_words_dict= defaultdict(int)
 pattern = re.compile("[^a-zA-Z0-9]")
 title_pos = list() # Which title is present at which location in the file
@@ -20,16 +19,15 @@ info_box_index = defaultdict(list)
 ext_links_index = defaultdict(list)
 references_index = defaultdict(list)
 word_position = dict()
-external_link_words = dict()
-category_tag_words = dict()
+# body_words = defaultdict(int)
 body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
-title_tags = open(index_path + "/title0"+".txt", "w+")
+title_tags = open("temp/title0"+".txt", "w+")
 
-token_count = 0
 
 def preprocess_word(word):
-    word = word[:int(len(word)*0.6)]
+    global stemmer
     word = word.strip()
+    word = word.lower()
     return word
 
 
@@ -48,16 +46,16 @@ def titleWrite(file_count, title_text):
 
 
 def title_pos_pickle_write():
-    global title_pos, index_path
-    file = open(index_path + "/title_pos.pickle", "wb+")
+    global title_pos
+    file = open("temp/title_pos.pickle", "wb+")
     pickle.dump(title_pos, file)
     file.close()
 
 def title_word_loc_write(file_count):
-    global title_index, index_path
+    global title_index
     global word_position
     fptr=0
-    file = index_path + "/tword_idx"+str(file_count)+".txt"
+    file = "temp/tword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in title_index:
         index = ",".join(title_index[word])+"\n"
@@ -72,10 +70,10 @@ def title_word_loc_write(file_count):
     
     
 def body_word_loc_write(file_count):
-    global body_index, word_position, index_path
+    global body_index, word_position
     
     fptr=0
-    file = index_path + "/bword_idx"+str(file_count)+".txt"
+    file = "temp/bword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in body_index:
         index = ",".join(body_index[word])+"\n"
@@ -90,9 +88,9 @@ def body_word_loc_write(file_count):
 
 
 def category_word_loc_write(file_count):
-    global category_index, word_position, index_path
+    global category_index, word_position
     fptr=0
-    file = index_path + "/cword_idx"+str(file_count)+".txt"
+    file = "temp/cword_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in category_index:
         index = ",".join(category_index[word])+"\n"
@@ -106,9 +104,9 @@ def category_word_loc_write(file_count):
     outfile.close()
 
 def info_box_loc_write(file_count):
-    global info_box_index, word_position, index_path
+    global info_box_index, word_position
     fptr=0
-    file = index_path + "/info_box_idx"+str(file_count)+".txt"
+    file = "temp/info_box_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in info_box_index:
         index = ",".join(info_box_index[word])+"\n"
@@ -122,9 +120,9 @@ def info_box_loc_write(file_count):
     outfile.close()
 
 def references_loc_write(file_count):
-    global references_index, word_position, index_path
+    global references_index, word_position
     fptr = 0
-    file = index_path + "/references_idx"+str(file_count)+".txt"
+    file = "temp/references_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in references_index:
         index = ",".join(references_index[word])+"\n"
@@ -139,9 +137,9 @@ def references_loc_write(file_count):
     outfile.close()
 
 def ext_link_loc_write(file_count):
-    global ext_links_index, word_position, index_path
+    global ext_links_index, word_position
     fptr = 0
-    file = index_path + "/ext_link_idx"+str(file_count)+".txt"
+    file = "temp/ext_link_idx"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in ext_links_index:
         index = ",".join(ext_links_index[word])+"\n"
@@ -162,17 +160,16 @@ def store_title_index(title_tag_words, page_count):
         title_index[word].append(s)
 
 def store_body_index(body_tag_words, page_count):
-    global body_index, external_link_words, category_tag_words
+    global body_index
     index = str(page_count)
     for word in body_tag_words :
-        if(word not in external_link_words and word not in category_tag_words):
-            s = index + ":" + str(body_tag_words[word])
-            body_index[word].append(s)
+        s = index + ":" + str(body_tag_words[word])
+        body_index[word].append(s)
 
 
 
-def store_category_index(page_count):
-    global category_index, category_tag_words
+def store_category_index(category_tag_words, page_count):
+    global category_index
     index = str(page_count)
     for word in category_tag_words :
         s = index + ":" + str(category_tag_words[word])
@@ -202,7 +199,7 @@ def store_ext_links_index(ext_links, page_count):
 
 def external_link_process(ext_link_cont, page_count):
     links = ''
-    global stemmer, external_link_words, token_count
+    global stemmer
     text = (ext_link_cont.split("==External links=="))
     if len(text)>1:
         text=text[1].split("\n")[1:]
@@ -210,12 +207,12 @@ def external_link_process(ext_link_cont, page_count):
             if txt=='':
                 break
             if txt[0]=='*':
-                # txt = stemmer.stem(txt)
+                txt = stemmer.stem(txt)
                 text_split=txt.split(' ')
                 link=[wd for wd in text_split if 'http' not in wd]
                 link=' '.join(link)
                 links+=' '+link
-    # external_link_words = dict()
+    external_link_words = dict()
     links = links.replace('\n', ' ').replace('File:', ' ')
     links = re.sub('(http://[^ ]+)', ' ', links)
     links = re.sub('(https://[^ ]+)', ' ', links)
@@ -223,13 +220,10 @@ def external_link_process(ext_link_cont, page_count):
     links = ''.join([i if ord(i) < 128 else ' ' for i in links])
     links = ''.join(ch if ch.isalnum() else ' ' for ch in links)
     links = links.split()
-
-    token_count += len(links)
-
     for word in links:
         if word:
             word = word.lower()
-            if word not in stop_words_dict and len(word)>2 and len(word)<13:
+            if word not in stop_words_dict and len(word)>2 and len(word)<15:
                 if word not in external_link_words:
                     external_link_words[word] = 1
                 else:
@@ -238,28 +232,27 @@ def external_link_process(ext_link_cont, page_count):
 
 
 def tokenizeInfo(text):
-    global stemmer, token_count
+    global stemmer
     text = re.split(r'[^A-Za-z0-9]+', text)
-    token_count += len(text)
     tokens = []
-    for word in text:
-        word = stemmer.stemWord(word)
-        if len(word) > 2 and len(word) < 13 and word not in stop_words_dict:
+    for line in text:
+        word = stemmer.stem(line)
+        if len(word) > 2 and len(word) < 10 and word not in stop_words_dict:
             tokens.append(word)
     return tokens
 
 
 def extractCategories(text, page_count):
     cat = re.findall(r"\[\[category:(.*)\]\]", text)
-    global category_tag_words
+    d = {}
     for line in cat:
         words = tokenizeInfo(line)
         for i in words:
-            if i in category_tag_words:
-                category_tag_words[i] = category_tag_words[i]+1
+            if i in d:
+                d[i] = d[i]+1
             else:
-                category_tag_words[i] = 1
-    store_category_index(page_count)
+                d[i] = 1
+    store_category_index(d, page_count)
 
 
 def processInfo(text, page_count):
@@ -374,16 +367,29 @@ class WikiHandler(xml.sax.ContentHandler):
         
 
     def characters(self, content):
-        global pattern, title_pos, token_count
+        global pattern, title_pos
         if(self.title == 1):
             self.title_data += content
             # Adding title content to the dictionary
             
         if(self.body_stat == 1):
             self.ext_link_cont += content
+            global stemmer
+            body_text = content
+            body_text = body_regex.sub('',body_text)
+    
+            body_text = body_text.lower()
+            body_text = preprocess_word(body_text)
+            body_text = re.split(pattern, body_text)
+            for word in body_text:
+                if word:
+                    if word not in stop_words_dict and len(word)>2 and len(word) < 15:
+                        if word not in self.body_words:
+                            self.body_words[word] = 1
+                        else:
+                            self.body_words[word] += 1
            
     def endElement(self, tag):
-        global external_link_words, category_tag_words, token_count
         if(tag=="page"):
             self.page_stat=0
             self.title_count+=1   
@@ -396,9 +402,6 @@ class WikiHandler(xml.sax.ContentHandler):
             titleWrite(self.title_file_count, title_text)
             title_text = self.title_data.lower()
             title_text = re.split(pattern, title_text)
-
-            token_count += len(title_text)
-
             for word in title_text:
                 if word:
                     if word not in stop_words_dict and len(word)>2:
@@ -409,69 +412,32 @@ class WikiHandler(xml.sax.ContentHandler):
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
             self.body_stat=0
+            store_body_index(self.body_words, self.page_count)
             external_link_process(self.ext_link_cont, self.page_count)
             processContent(self.ext_link_cont, self.page_count)
-
-            body_text = self.ext_link_cont
-            body_text = body_regex.sub('==[A-Za-z]+==\n(.*)\n',body_text)
+            self.ext_link_cont = ""   
         
-            body_text = body_text.lower()
-            body_text = preprocess_word(body_text)
-            body_text = re.split(pattern, body_text)
-
-            token_count += len(body_text)
-
-            for word in body_text:
-                word = stemmer.stemWord(word)
-                if word:
-                    if word not in stop_words_dict and len(word)>2 and len(word) < 13:
-                        if word not in self.body_words:
-                            self.body_words[word] = 1
-                        else:
-                            self.body_words[word] += 1
-
-
-            
-            store_body_index(self.body_words, self.page_count)
-
-            self.ext_link_cont = ""  
-            external_link_words = dict() 
-            category_tag_words = dict()
-        
-
 
 
 
         
 def dump_data_pickel():
-    global word_position, index_path, token_count
-    stat_path = sys.argv[3]
-    stat_file_write = open(stat_path, "a")
-    stat_file_write.write("Total Number of Tokens: " + str(token_count) + "\n")
-    stat_file_write.write("Total Number of Unique: " + str(len(word_position)) + "\n")
-    stat_file_write.close()
-    # print("Unique Count", len(word_position))
-    file = open(index_path + "/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
+    global word_position
+    file = open("temp/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
     pickle.dump(word_position, file)
     file.close()         
 
 
 def main():
-    global title_index, body_index, dump_path, index_path, title_tags, token_count
+    global fp, title_index, body_index
 
-    token_count = 0
-
-    dump_path = sys.argv[1]
-    index_path = sys.argv[2]
-
-    title_tags = open(index_path + "/title0"+".txt", "w+")
-
-
+    fp=open("temp/title_offset.tsv","w")
     par=xml.sax.make_parser()
     Handler = WikiHandler()
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
-    par.parse(dump_path)
+    par.parse('data.xml')
+    # Parsing Done
     # Writing Titles to File
     
     title_word_loc_write(WikiHandler.title_file_count)
@@ -493,8 +459,6 @@ def main():
 
 
     dump_data_pickel()
-
-    # print("Token Count = ",token_count)
     
     
 
