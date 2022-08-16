@@ -355,32 +355,25 @@ def processContent(text, page_count):
 
 class WikiHandler(xml.sax.ContentHandler):
     title_file_count = 0
-    ext_link_cont = ""
+    body_content = ""
     def __init__(self):
         self.title=0
         self.title_data = ""
         self.page_count = 0 # For Counting the pages Parsed till now
-        self.title_count = 0 # Counting title for 1 title file
         self.title_file_count = 0
-        self.title_id_stat = 0
-        self.page_stat = 0
         self.title_tag_words = dict() # For Storing the Title Tag Words
         self.category_words = dict() # For Storing the Category Words
         self.body_stat = 0
-        self.ext_link_cont = ""
+        self.body_content = ""
         self.body_words = dict() # For Storing the Body Words
 
     
     def startElement(self,tag,attr):
-        if(tag=="id" and self.page_stat==0):
-            self.page_stat=1
-            self.title_id_stat=1
         if(tag == "title"):
             self.title = 1
             self.title_data = ""
         if(tag == "page"):
             self.page_count = self.page_count + 1
-            self.title_count = self.title_count + 1
             self.title_tag_words = dict() # Making the Title tag dictionary as empty for every page
         if(tag == "text"):
             self.body_stat = 1
@@ -394,15 +387,10 @@ class WikiHandler(xml.sax.ContentHandler):
             # Adding title content to the dictionary
             
         if(self.body_stat == 1):
-            self.ext_link_cont += content
+            self.body_content += content
            
     def endElement(self, tag):
         global external_link_words, category_tag_words, token_count
-        if(tag=="page"):
-            self.page_stat=0
-            self.title_count+=1   
-        if(tag=="id"):
-            self.title_id_stat=0
         if(tag == "title"):
             self.title = 0
             title_text = self.title_data
@@ -423,10 +411,10 @@ class WikiHandler(xml.sax.ContentHandler):
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
             self.body_stat=0
-            external_link_process(self.ext_link_cont, self.page_count)
-            processContent(self.ext_link_cont, self.page_count)
+            external_link_process(self.body_content, self.page_count)
+            processContent(self.body_content, self.page_count)
 
-            body_text = self.ext_link_cont
+            body_text = self.body_content
             body_text = body_regex.sub('==[A-Za-z]+==\n(.*)\n',body_text)
         
             body_text = body_text.lower()
@@ -448,7 +436,7 @@ class WikiHandler(xml.sax.ContentHandler):
             
             store_body_index(self.body_words, self.page_count)
 
-            self.ext_link_cont = ""  
+            self.body_content = ""  
             external_link_words = dict() 
             category_tag_words = dict()
         
