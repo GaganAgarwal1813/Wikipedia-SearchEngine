@@ -281,15 +281,18 @@ def tokenizeInfo(text):
 
 
 def extractCategories(text, page_count):
-    cat = re.findall(r"\[\[category:(.*)\]\]", text)
+    cat = re.findall("\[\[Category:(.*?)\]\]", text)
     global category_tag_words
     for line in cat:
-        words = tokenizeInfo(line)
+        words = re.split(pattern, line)
         for i in words:
-            if i in category_tag_words:
-                category_tag_words[i] = category_tag_words[i]+1
-            else:
-                category_tag_words[i] = 1
+            i = preprocessWord(i)
+            if i and len(i) > 2 and i not in stop_words_dict:
+                if i not in category_tag_words:
+                    category_tag_words[i] = 1
+                else:
+                    category_tag_words[i] += 1
+
     store_category_index(page_count)
 
 
@@ -349,7 +352,7 @@ def processContent(text, page_count):
     if data[0]==text:
         data= text.split(ref[3])
     if len(data)==1:
-        extractCategories(data[0], page_count)
+        # extractCategories(data[0], page_count)
         catdata=data[0].split(ext[0])
         if len(catdata)==1:
             catdata=data[0].split(ext[1])
@@ -366,7 +369,7 @@ def processContent(text, page_count):
         if len(catdata)==1:
             catdata=data[1].split(ext[3])
         getReferences(data[1], page_count)
-        extractCategories(data[1], page_count)
+        # extractCategories(data[1], page_count)
     processInfo(data[0], page_count)
 
 
@@ -428,6 +431,18 @@ class WikiHandler(xml.sax.ContentHandler):
             store_title_index(self.title_tag_words, self.page_count)
         if(tag=="text"):
             self.body_stat=0
+            
+            remove_redundant_body(self.body_content)
+
+            try:
+            # Getting Category Words
+                extractCategories(self.body_content, self.page_count)
+            # Getting Info Box Words
+
+            except:
+                pass
+
+
             external_link_process(self.body_content, self.page_count)
             processContent(self.body_content, self.page_count)
 
@@ -463,13 +478,13 @@ class WikiHandler(xml.sax.ContentHandler):
         
 def dump_data_pickel():
     global word_position, index_path, token_count
-    print(word_position)
-    stat_path = sys.argv[3]
-    stat_file_write = open(stat_path, "a")
-    stat_file_write.write("Total Number of Tokens: " + str(token_count) + "\n")
-    stat_file_write.write("Total Number of Unique: " + str(len(word_position)) + "\n")
-    stat_file_write.close()
-    # print("Unique Count", len(word_position))
+    # print(word_position)
+    # stat_path = sys.argv[3]
+    # stat_file_write = open(stat_path, "a")
+    # stat_file_write.write("Total Number of Tokens: " + str(token_count) + "\n")
+    # stat_file_write.write("Total Number of Unique: " + str(len(word_position)) + "\n")
+    # stat_file_write.close()
+    # # print("Unique Count", len(word_position))
     file = open(index_path + "/wpos"+str(WikiHandler.title_file_count)+".pickle", "wb+")
     pickle.dump(word_position, file)
     file.close()         
