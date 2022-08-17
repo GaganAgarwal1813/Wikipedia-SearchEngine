@@ -403,7 +403,7 @@ class WikiHandler(xml.sax.ContentHandler):
             self.body_content += content
            
     def endElement(self, tag):
-        global external_link_words, category_tag_words, token_count
+        global external_link_words, category_tag_words, token_count, stemWordDict
         if(tag == "title"):
             self.title = 0
             title_text = self.title_data
@@ -425,7 +425,7 @@ class WikiHandler(xml.sax.ContentHandler):
         if(tag=="text"):
             self.body_stat=0
             
-            remove_redundant_body(self.body_content)
+            self.body_content = remove_redundant_body(self.body_content)
 
             try:
             # Getting Category Words
@@ -434,36 +434,39 @@ class WikiHandler(xml.sax.ContentHandler):
             # Getting Info Box Words
                 iwords = self.body_content
                 processInfo(iwords, self.page_count)
-
             except:
                 pass
+
 
 
             external_link_process(self.body_content, self.page_count)
             processContent(self.body_content, self.page_count)
 
-            body_text = self.body_content
-            body_text = body_regex.sub('==[A-Za-z]+==\n(.*)\n',body_text)
-        
-            body_text = body_text.lower()
-            body_text = preprocess_word(body_text)
-            body_text = re.split(pattern, body_text)
 
-            token_count += len(body_text)
-
-            for word in body_text:
-                word = stemmer.stemWord(word)
-                if word:
-                    if word not in stop_words_dict and len(word)>2 and len(word) < 13:
-                        if word not in self.body_words:
-                            self.body_words[word] = 1
-                        else:
-                            self.body_words[word] += 1
-
-
-            
-            store_body_index(self.body_words, self.page_count)
-
+            # Getting body words
+            try:
+                body_text = self.body_content
+                body_text = body_text.lower()
+                body_text = re.split(pattern, body_text)
+                
+                token_count += len(body_text)
+                for word in body_text:
+                    if word :
+                        if word not in stemWordDict :
+                            stem_word = stemmer.stemWord(word) # do stemming
+                            stemWordDict[word]=stem_word
+                        else :
+                            stem_word = stemWordDict[word]
+                        word = stem_word
+                        if word not in stop_words_dict and len(word)>2 :
+                            if word not in self.body_words:
+                                self.body_words[word] = 1
+                            else:
+                                self.body_words[word] += 1
+                # print(self.body_words)
+                store_body_index(self.body_words, self.page_count)
+            except:
+                pass
             self.body_content = ""  
             external_link_words = dict() 
             category_tag_words = dict()
