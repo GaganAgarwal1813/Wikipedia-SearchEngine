@@ -24,6 +24,7 @@ references_index = defaultdict(list)
 word_position = dict()
 external_link_words = dict()
 category_tag_words = dict()
+info_box_words = dict()
 body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
 title_tags = ""
 stemWordDict = dict()
@@ -216,8 +217,8 @@ def store_references(references_words, page_count):
         s = index + ":" + str(references_words[word])
         references_index[word].append(s)
 
-def store_info_box_index(info_box_words, page_count):
-    global info_box_index
+def store_info_box_index(page_count):
+    global info_box_index, info_box_words
     index = str(page_count)
     for word in info_box_words :
         s = index + ":" + str(info_box_words[word])
@@ -297,28 +298,20 @@ def extractCategories(text, page_count):
 
 
 def processInfo(text, page_count):
-    cont = text.split("{{infobox")
-    info = []
-    if len(cont) <= 1:
-        return
-    flag= False
-    for infob in cont:
-        traw = infob.split("\n")
-        if (not flag):
-            flag=True
-        else :
-            for lines in traw:
-                if lines == "}}":
-                    break
-                info += tokenizeInfo(lines)
-    info_box_words = {}
-    for i in info:
-        if i in info_box_words:
-            info_box_words[i] = info_box_words[i]+1
-        else:
-            info_box_words[i] = 1
-    
-    store_info_box_index(info_box_words, page_count)
+    info_cont = re.findall(r"{{Infobox((.|\n)*?)}}", text)
+    global info_box_words
+    for line in info_cont:
+        for i in line:
+            i = re.split(pattern, i)
+            for j in i:
+                j = preprocessWord(j)
+                if j and len(j) > 2 and j not in stop_words_dict:
+                    if j not in info_box_words:
+                        info_box_words[j] = 1
+                    else:
+                        info_box_words[j] += 1
+    # print("info_box_words", info_box_words)
+    store_info_box_index(page_count)
 
 def refandextType(name):
 	l = []
@@ -370,7 +363,7 @@ def processContent(text, page_count):
             catdata=data[1].split(ext[3])
         getReferences(data[1], page_count)
         # extractCategories(data[1], page_count)
-    processInfo(data[0], page_count)
+    # processInfo(data[0], page_count)
 
 
 class WikiHandler(xml.sax.ContentHandler):
@@ -436,8 +429,11 @@ class WikiHandler(xml.sax.ContentHandler):
 
             try:
             # Getting Category Words
-                extractCategories(self.body_content, self.page_count)
+                cwords = self.body_content
+                extractCategories(cwords, self.page_count)
             # Getting Info Box Words
+                iwords = self.body_content
+                processInfo(iwords, self.page_count)
 
             except:
                 pass
