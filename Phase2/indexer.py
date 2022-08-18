@@ -28,6 +28,7 @@ info_box_words = dict()
 body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
 title_tags = ""
 stemWordDict = dict()
+pages_per_file = 40000
 
 token_count = 0
 
@@ -89,7 +90,7 @@ def title_word_loc_write(file_count):
     global title_index, index_path
     global word_position
     fptr=0
-    file = index_path + "/tword_idx"+str(file_count)+".txt"
+    file = index_path + "/t"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in title_index:
         index = ",".join(title_index[word])+"\n"
@@ -107,7 +108,7 @@ def body_word_loc_write(file_count):
     global body_index, word_position, index_path
     
     fptr=0
-    file = index_path + "/bword_idx"+str(file_count)+".txt"
+    file = index_path + "/b"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in body_index:
         index = ",".join(body_index[word])+"\n"
@@ -124,7 +125,7 @@ def body_word_loc_write(file_count):
 def category_word_loc_write(file_count):
     global category_index, word_position, index_path
     fptr=0
-    file = index_path + "/cword_idx"+str(file_count)+".txt"
+    file = index_path + "/c"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in category_index:
         index = ",".join(category_index[word])+"\n"
@@ -140,7 +141,7 @@ def category_word_loc_write(file_count):
 def info_box_loc_write(file_count):
     global info_box_index, word_position, index_path
     fptr=0
-    file = index_path + "/info_box_idx"+str(file_count)+".txt"
+    file = index_path + "/i"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in info_box_index:
         index = ",".join(info_box_index[word])+"\n"
@@ -156,7 +157,7 @@ def info_box_loc_write(file_count):
 def references_loc_write(file_count):
     global references_index, word_position, index_path
     fptr = 0
-    file = index_path + "/references_idx"+str(file_count)+".txt"
+    file = index_path + "/r"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in references_index:
         index = ",".join(references_index[word])+"\n"
@@ -173,7 +174,7 @@ def references_loc_write(file_count):
 def ext_link_loc_write(file_count):
     global ext_links_index, word_position, index_path
     fptr = 0
-    file = index_path + "/ext_link_idx"+str(file_count)+".txt"
+    file = index_path + "/e"+str(file_count)+".txt"
     outfile = open(file, "w+")
     for word in ext_links_index:
         index = ",".join(ext_links_index[word])+"\n"
@@ -298,7 +299,9 @@ def extractCategories(text, page_count):
 
 
 def processInfo(text, page_count):
-    info_cont = re.findall(r"{{Infobox((.|\n)*?)}}", text)
+    # print("Processing info box", text)
+    info_cont = re.finditer(r"(?=\{Infobox)(\{([^{}]|(?1))*\})", text)
+    print(info_cont)
     global info_box_words
     for line in info_cont:
         for i in line:
@@ -365,6 +368,40 @@ def processContent(text, page_count):
         # extractCategories(data[1], page_count)
     # processInfo(data[0], page_count)
 
+
+def sortfile_content(file_count):
+    global title_index, body_index, ext_links_index, category_index, info_box_index, references_index
+    file = index_path + "/t" + str(file_count) + ".txt"
+    outfile = open(file, "w+")
+    for word in sorted(title_index) :
+        posting_list = ",".join(title_index[word])
+        index = word + "-" + posting_list
+        outfile.write(index+"\n")
+    outfile.close()
+
+    file = index_path + "/b" + str(file_count) + ".txt"
+    outfile = open(file, "w+")
+    for word in sorted(body_index) :
+        posting_list = ",".join(body_index[word])
+        index = word + "-" + posting_list
+        outfile.write(index+"\n")
+    outfile.close()
+
+    file = index_path + "/c" + str(file_count) + ".txt"
+    outfile = open(file, "w+")
+    for word in sorted(category_index) :
+        posting_list = ",".join(category_index[word])
+        index = word + "-" + posting_list
+        outfile.write(index+"\n")
+    outfile.close()
+
+    file = index_path + "/i" + str(file_count) + ".txt"
+    outfile = open(file, "w+")
+    for word in sorted(info_box_index) :
+        posting_list = ",".join(info_box_index[word])
+        index = word + "-" + posting_list
+        outfile.write(index+"\n")
+    outfile.close()
 
 class WikiHandler(xml.sax.ContentHandler):
     title_file_count = 0
@@ -433,10 +470,12 @@ class WikiHandler(xml.sax.ContentHandler):
                 extractCategories(cwords, self.page_count)
             # Getting Info Box Words
                 iwords = self.body_content
-                processInfo(iwords, self.page_count)
+                # processInfo(iwords, self.page_count)
+            
+            # Getting Reference Words
+                rwords = self.body_content
             except:
                 pass
-
 
 
             external_link_process(self.body_content, self.page_count)
@@ -463,7 +502,6 @@ class WikiHandler(xml.sax.ContentHandler):
                                 self.body_words[word] = 1
                             else:
                                 self.body_words[word] += 1
-                # print(self.body_words)
                 store_body_index(self.body_words, self.page_count)
             except:
                 pass
@@ -471,7 +509,19 @@ class WikiHandler(xml.sax.ContentHandler):
             external_link_words = dict() 
             category_tag_words = dict()
         
-
+        if(tag == "page"):
+            
+            if(self.page_count % 50000):
+                stemWordDict = {}
+            
+            if(self.page_count % pages_per_file == 0):
+                sortfile_content(self.title_file_count)
+                title_index.clear()
+                body_index.clear()
+                category_index.clear()
+                info_box_index.clear()
+                references_index.clear()
+                self.title_file_count += 1
 
 
         
@@ -507,27 +557,34 @@ def main():
     par.setFeature(xml.sax.handler.feature_namespaces,0)
     par.setContentHandler( Handler )
     par.parse(dump_path)
+
+    sortfile_content(WikiHandler.title_file_count)
     # Writing Titles to File
+
     
-    title_word_loc_write(WikiHandler.title_file_count)
-    # Writing Title Position to Pickle File
-    title_pos_pickle_write()
-    # Writing Body Index to File
-
-    body_word_loc_write(WikiHandler.title_file_count)
-
-    # Writing Category Index to File
-    category_word_loc_write(WikiHandler.title_file_count)
-
-    # writing Info-Box index to file
-    info_box_loc_write(WikiHandler.title_file_count)
-    references_loc_write(WikiHandler.title_file_count)
-
-    # Writing External Link Index in File
-    ext_link_loc_write(WikiHandler.title_file_count)
 
 
-    dump_data_pickel()
+
+    
+    # title_word_loc_write(WikiHandler.title_file_count)
+    # # Writing Title Position to Pickle File
+    # title_pos_pickle_write()
+    # # Writing Body Index to File
+
+    # body_word_loc_write(WikiHandler.title_file_count)
+
+    # # Writing Category Index to File
+    # category_word_loc_write(WikiHandler.title_file_count)
+
+    # # writing Info-Box index to file
+    # info_box_loc_write(WikiHandler.title_file_count)
+    # references_loc_write(WikiHandler.title_file_count)
+
+    # # Writing External Link Index in File
+    # ext_link_loc_write(WikiHandler.title_file_count)
+
+
+    # dump_data_pickel()
 
     # print("Token Count = ",token_count)
     
