@@ -6,6 +6,9 @@ import pickle
 import re 
 import sys
 import os
+import operator
+from math import *
+from heapq import *
 
 
 
@@ -29,6 +32,7 @@ body_regex = re.compile("== ?[a-z]+ ?==\n(.*?)\n")
 title_tags = ""
 stemWordDict = dict()
 pages_per_file = 40000
+
 
 token_count = 0
 
@@ -403,6 +407,46 @@ def sortfile_content(file_count):
         outfile.write(index+"\n")
     outfile.close()
 
+
+def mergeFiles(file_count):
+    global index_path
+    output_files = list()
+    field_chars = ["t", "b", "i", "c"]
+    flag1 = 1
+    heap = []
+    for field_char in field_chars:
+
+        input_file_lis = []
+        fpath = index_path + "/" + field_char + ".txt"
+        fp = open(fpath, "w+")
+        output_files.append(fp)
+        outfile_index = len(output_files) - 1
+        for i in range(file_count) :
+            file =  index_path + "/" + field_char + str(i) + ".txt"
+            if os.stat(file).st_size == 0 :
+                # print("Reading file")
+                try :
+                    del input_file_lis[i]
+                    os.remove(file)
+                except :
+                    pass
+            else :
+                fp = open(file, "r")
+                input_file_lis.append(fp)
+        if len(input_file_lis) == 0 :
+            flag1 = 0
+            break
+
+        for i in range(file_count) :
+            try :
+                s = input_file_lis[i].readline()[:-1]
+                heap.append((s, i))
+            except :
+                flag1 = 0
+        i = 0
+        heapify(heap)
+        print("heap", heap)
+
 class WikiHandler(xml.sax.ContentHandler):
     title_file_count = 0
     body_content = ""
@@ -558,10 +602,19 @@ def main():
     par.setContentHandler( Handler )
     par.parse(dump_path)
 
+    # Writing to the Files
     sortfile_content(WikiHandler.title_file_count)
+
+    WikiHandler.title_file_count += 1
+
+    dump_data_pickel()
+
+    # Merging Files 
+    mergeFiles(WikiHandler.title_file_count)
+
     # Writing Titles to File
 
-    
+
 
 
 
