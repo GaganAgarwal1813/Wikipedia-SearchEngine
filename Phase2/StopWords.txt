@@ -216,8 +216,6 @@ how
 howbeit
 however
 hundred
-http
-https
 i
 id
 ie
